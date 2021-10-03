@@ -36,8 +36,8 @@ mod geo {
             (dx * dx + dy * dy + dz * dz).sqrt()
         }
 
-        pub fn is_equal_to(&self, rhs: &Self) -> bool {
-            self.distance_to(rhs) < crate::DEFAULT_TOLERANCE_POINT
+        pub fn is_equal_to(&self, rhs: &Self, tol: f64) -> bool {
+            self.distance_to(rhs) < tol
         }
     }
 
@@ -60,6 +60,15 @@ mod geo {
         pub fn z_axis() -> Vector {
             Vector { x: 0.0, y: 0.0, z: 1.0 }
         }
+
+        pub fn length(&self) -> f64 {
+            (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
+        }
+
+        pub fn is_equal_to(&self, rhs: &Self, tol: f64) -> bool {
+            let diff = Vector { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z };
+            diff.length() < tol
+        }
     }
 }
 
@@ -75,6 +84,22 @@ mod tests {
         let lhs = geo::Point { x: 1.0, y: 2.0, z: 3.0 };
         let rhs = geo::Point { x: 1.0, y: 2.0, z: 3.0 };
 
-        assert!(lhs.is_equal_to(&rhs));
+        assert!(lhs.is_equal_to(&rhs, crate::DEFAULT_TOLERANCE_POINT));
+
+        let rhs = geo::Point { x: 1.1, y: 2.1, z: 3.1 };
+
+        assert!(!lhs.is_equal_to(&rhs, crate::DEFAULT_TOLERANCE_POINT));
+    }
+
+    #[test]
+    fn vector_is_equal_to() {
+        let lhs = geo::Vector { x: 1.0, y: 2.0, z: 3.0 };
+        let rhs = geo::Vector { x: 1.0, y: 2.0, z: 3.0 };
+
+        assert!(lhs.is_equal_to(&rhs, crate::DEFAULT_TOLERANCE_VECTOR));
+
+        let rhs = geo::Vector { x: 1.1, y: 2.1, z: 3.1 };
+
+        assert!(!lhs.is_equal_to(&rhs, crate::DEFAULT_TOLERANCE_VECTOR));
     }
 }
