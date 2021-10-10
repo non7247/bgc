@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use std::ops;
+
+#[derive(Debug, Copy, Clone)]
 pub struct Vector {
     pub x: f64,
     pub y: f64,
@@ -25,5 +27,21 @@ impl Vector {
     pub fn is_equal_to(&self, rhs: &Self, tol: f64) -> bool {
         let diff = Vector { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z };
         diff.length() < tol
+    }
+}
+
+impl ops::AddAssign for Vector {
+    fn add_assign(&mut self, rhs: Vector) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
+impl ops::SubAssign for Vector {
+    fn sub_assign(&mut self, rhs: Vector) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
     }
 }

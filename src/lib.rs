@@ -37,6 +37,20 @@ mod tests {
     }
 
     #[test]
+    fn point_operators() {
+        let mut lhs = geo::Point { x: 10.0, y: 10.0, z: 10.0 };
+        let rhs = geo::Vector { x: 5.0, y: -5.0, z: 0.0 };
+
+        lhs += rhs;
+
+        assert!(lhs.is_equal_to(&geo::Point { x: 15.0, y: 5.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
+
+        lhs -= rhs;
+
+        assert!(lhs.is_equal_to(&geo::Point { x: 10.0, y: 10.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
+    }
+
+    #[test]
     fn vector_is_equal_to() {
         let lhs = geo::Vector { x: 1.0, y: 2.0, z: 3.0 };
         let rhs = geo::Vector { x: 1.0, y: 2.0, z: 3.0 };
@@ -46,5 +60,19 @@ mod tests {
         let rhs = geo::Vector { x: 1.1, y: 2.1, z: 3.1 };
 
         assert!(!lhs.is_equal_to(&rhs, crate::DEFAULT_TOLERANCE_VECTOR));
+    }
+
+    #[test]
+    fn vector_operators() {
+        let mut lhs = geo::Vector { x: 10.0, y: 10.0, z: 10.0 };
+        let rhs = geo::Vector { x: 5.0, y: -5.0, z: 0.0 };
+
+        lhs += rhs;
+
+        assert!(lhs.is_equal_to(&geo::Vector { x: 15.0, y: 5.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_VECTOR));
+
+        lhs -= rhs;
+
+        assert!(lhs.is_equal_to(&geo::Vector { x: 10.0, y: 10.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_VECTOR));
     }
 }

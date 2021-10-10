@@ -1,4 +1,7 @@
-#[derive(Debug)]
+use std::ops;
+use super::Vector;
+
+#[derive(Debug, Copy, Clone)]
 pub struct Point {
     pub x: f64,
     pub y: f64,
@@ -20,5 +23,21 @@ impl Point {
 
     pub fn is_equal_to(&self, rhs: &Self, tol: f64) -> bool {
         self.distance_to(rhs) < tol
+    }
+}
+
+impl ops::AddAssign<Vector> for Point {
+    fn add_assign(&mut self, rhs: Vector) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
+impl ops::SubAssign<Vector> for Point {
+    fn sub_assign(&mut self, rhs: Vector) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
     }
 }
