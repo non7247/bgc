@@ -41,3 +41,27 @@ impl ops::SubAssign<Vector> for Point {
         self.z -= rhs.z;
     }
 }
+
+impl ops::Add<Vector> for Point {
+    type Output = Self;
+
+    fn add(self, rhs: Vector) -> Self {
+        Self { x: self.x + rhs.x, y: self.y + rhs.y, z: self.z + rhs.z, }
+    }
+}
+
+impl ops::Sub for Point {
+    type Output = Vector;
+
+    fn sub(self, rhs: Self) -> Vector {
+        Vector { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z }
+    }
+}
+
+impl ops::Sub<Vector> for Point {
+    type Output = Self;
+
+    fn sub(self, rhs: Vector) -> Self {
+        Self { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z, }
+    }
+}

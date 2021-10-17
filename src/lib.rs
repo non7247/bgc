@@ -42,12 +42,20 @@ mod tests {
         let rhs = geo::Vector { x: 5.0, y: -5.0, z: 0.0 };
 
         lhs += rhs;
-
         assert!(lhs.is_equal_to(&geo::Point { x: 15.0, y: 5.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
 
         lhs -= rhs;
-
         assert!(lhs.is_equal_to(&geo::Point { x: 10.0, y: 10.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
+
+        let result = lhs + rhs;
+        assert!(result.is_equal_to(&geo::Point { x: 15.0, y: 5.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
+
+        let result = lhs - rhs;
+        assert!(result.is_equal_to(&geo::Point { x: 5.0, y: 15.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
+
+        let p = geo::Point { x: 5.0, y: -5.0, z: 0.0 };
+        let result = lhs - p;
+        assert!(result.is_equal_to(&geo::Vector { x: 5.0, y: 15.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
     }
 
     #[test]
@@ -74,5 +82,11 @@ mod tests {
         lhs -= rhs;
 
         assert!(lhs.is_equal_to(&geo::Vector { x: 10.0, y: 10.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_VECTOR));
+
+        let result = lhs + rhs;
+        assert!(result.is_equal_to(&geo::Vector { x: 15.0, y: 5.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
+
+        let result = lhs - rhs;
+        assert!(result.is_equal_to(&geo::Vector { x: 5.0, y: 15.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
     }
 }
