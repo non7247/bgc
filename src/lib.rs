@@ -24,4 +24,10 @@ mod math {
 mod tests {
     use super::*;
 
+    #[test]
+    fn line_length() {
+        let l = geo::Line { start_point: geo::Point { x: 0.0, y: 0.0, z: 0.0},
+                            end_point: geo::Point { x: 1.0, y: 1.0, z: 0.0} };
+        assert!((l.length() - 2.0_f64.sqrt()).abs() < crate::DEFAULT_TOLERANCE_POINT);
+    }
 }
