@@ -30,4 +30,28 @@ mod tests {
                             end_point: geo::Point { x: 1.0, y: 1.0, z: 0.0} };
         assert!((l.length() - 2.0_f64.sqrt()).abs() < crate::DEFAULT_TOLERANCE_POINT);
     }
+
+    #[test]
+    fn line_get_closest_point() {
+        let l = geo::Line { start_point: geo::Point { x: 1379.591836, y: 1159.400383, z: 0.0 },
+                            end_point: geo::Point { x: 3079.683229, y: 2067.058311, z: 0.0 } };
+
+        let p = l.get_closest_point(&geo::Point { x: 3908.885031, y: 1901.285447, z: 0.0 },
+                                    false, crate::DEFAULT_TOLERANCE_POINT);
+        assert!(p.is_equal_to(&geo::Point { x: 3079.683229, y: 2067.058311, z: 0.0 },
+                              crate::DEFAULT_TOLERANCE_POINT));
+        let p = l.get_closest_point(&geo::Point { x: 3908.885031, y: 1901.285447, z: 0.0 },
+                                    true, crate::DEFAULT_TOLERANCE_POINT);
+        assert!(p.is_equal_to(&geo::Point { x: 3656.085482, y: 2374.792398, z: 0.0 },
+                              crate::DEFAULT_TOLERANCE_POINT));
+
+        let p = l.get_closest_point(&geo::Point { x: 569.433291, y: 1366.238184, z: 0.0 },
+                                    false, crate::DEFAULT_TOLERANCE_POINT);
+        assert!(p.is_equal_to(&geo::Point { x: 1379.591836, y: 1159.400383, z: 0.0 },
+                              crate::DEFAULT_TOLERANCE_POINT));
+        let p = l.get_closest_point(&geo::Point { x: 569.433291, y: 1366.238184, z: 0.0 },
+                                    true, crate::DEFAULT_TOLERANCE_POINT);
+        assert!(p.is_equal_to(&geo::Point { x: 835.069873, y: 868.686791, z: 0.0 },
+                              crate::DEFAULT_TOLERANCE_POINT));
+    }
 }

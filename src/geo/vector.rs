@@ -28,6 +28,16 @@ impl Vector {
         let diff = Vector { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z };
         diff.length() < tol
     }
+
+    pub fn normal(&self, tol: f64) -> Self {
+        let l = self.length();
+
+        if l < tol {
+            Vector { x: self.x, y: self.y, z: self.z }
+        } else {
+            Vector { x: self.x / l, y: self.y / l, z: self.z / l }
+        }
+    }
 }
 
 impl ops::AddAssign for Vector {
@@ -46,6 +56,14 @@ impl ops::SubAssign for Vector {
     }
 }
 
+impl ops::MulAssign<f64> for Vector {
+    fn mul_assign(&mut self, rhs: f64) {
+        self.x *= rhs;
+        self.y *= rhs;
+        self.z *= rhs;
+    }
+}
+
 impl ops::Add for Vector {
     type Output = Self;
 
@@ -59,6 +77,14 @@ impl ops::Sub for Vector {
 
     fn sub(self, rhs: Vector) -> Self {
         Self { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z }
+    }
+}
+
+impl ops::Mul<f64> for Vector {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Self {
+        Self { x: self.x * rhs, y: self.y * rhs, z: self.z * rhs }
     }
 }
 
