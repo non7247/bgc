@@ -68,4 +68,31 @@ impl Line {
         
         closest.is_equal_to(&p, tol)
     }
+
+    /// Determines if input line is parallel to this line.
+    pub fn is_parallel(&self, l: &Self, tol: f64) -> bool {
+        let closest_start = l.get_closest_point(&self.start_point, true, tol);
+        let closest_end = l.get_closest_point(&self.end_point, true, tol);
+
+        let dir_start = (closest_start - self.start_point).normal(crate::DEFAULT_TOLERANCE_VECTOR);
+        let dir_end = (closest_end - self.end_point).normal(crate::DEFAULT_TOLERANCE_VECTOR);
+
+        if !dir_start.is_equal_to(&dir_end, crate::DEFAULT_TOLERANCE_VECTOR) {
+            return false;
+        }
+
+        let dist_start = self.start_point.distance_to(&closest_start);
+        let dist_end = self.end_point.distance_to(&closest_end);
+
+        let dir_self = self.direction();
+        let dir_other = l.direction();
+
+        if (dist_start - dist_end).abs() <= tol &&
+                (dir_self.is_equal_to(&dir_other, crate::DEFAULT_TOLERANCE_VECTOR) ||
+                 dir_self.is_equal_to(&(dir_other * -1.0), crate::DEFAULT_TOLERANCE_CONVERGENCE)) {
+            return true;
+        }
+
+        false
+    }
 }
