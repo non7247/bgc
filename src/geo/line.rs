@@ -20,10 +20,10 @@ impl Line {
     ///
     /// p0(x0, y0, z0) -> (x - x1)/l = (y - y1)/m = (z - z1)/n
     ///
-    /// pa(xa, ya, za)
-    /// xa = x1 + lt
-    /// ya = y1 + mt
-    /// za = z1 + nt
+    /// pa(xa, ya, za) <br>
+    /// xa = x1 + lt <br>
+    /// ya = y1 + mt <br>
+    /// za = z1 + nt <br>
     /// t = (x0 - x1)l + (y0 - y1)m + (z0 - z1)n
     pub fn get_closest_point(&self, p0: &Point, extends: bool, tol: f64) -> Point {
         if p0.is_equal_to(&self.start_point, tol) {
@@ -56,5 +56,16 @@ impl Line {
         }
 
         closest
+    }
+
+    /// Determines if input point lies on this line.
+    pub fn is_on(&self, p: &Point, extends: bool, tol: f64) -> bool {
+        if p.is_equal_to(&self.start_point, tol) || p.is_equal_to(&self.end_point, tol) {
+            return true;
+        }
+
+        let closest = self.get_closest_point(&p, extends, tol);
+        
+        closest.is_equal_to(&p, tol)
     }
 }

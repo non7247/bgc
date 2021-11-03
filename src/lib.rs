@@ -1,11 +1,11 @@
-mod geo;
+pub mod geo;
 
-const DEFAULT_TOLERANCE_CALCULATION: f64 = 1.0e-8;
-const DEFAULT_TOLERANCE_CONVERGENCE: f64 = 1.0e-6;
-const DEFAULT_TOLERANCE_POINT: f64 = 1.0e-4;
-const DEFAULT_TOLERANCE_VECTOR: f64 = 1.0e-6;
+pub const DEFAULT_TOLERANCE_CALCULATION: f64 = 1.0e-8;
+pub const DEFAULT_TOLERANCE_CONVERGENCE: f64 = 1.0e-6;
+pub const DEFAULT_TOLERANCE_POINT: f64 = 1.0e-4;
+pub const DEFAULT_TOLERANCE_VECTOR: f64 = 1.0e-6;
 
-enum ErrorStatus {
+pub enum ErrorStatus {
     Ok,
     InvalidInput,
     OutOfRange,
@@ -53,5 +53,23 @@ mod tests {
                                     true, crate::DEFAULT_TOLERANCE_POINT);
         assert!(p.is_equal_to(&geo::Point { x: 835.069873, y: 868.686791, z: 0.0 },
                               crate::DEFAULT_TOLERANCE_POINT));
+    }
+
+    #[test]
+    fn line_is_on() {
+        let l = geo::Line { start_point: geo::Point { x: -26.0564, y: -13.8449, z: 0.0 },
+                            end_point: geo::Point { x: 44.2176, y: 19.9981, z: 0.0 } };
+
+        assert!(l.is_on(&geo::Point { x: 0.2074, y: -1.1966, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT));
+        assert!(l.is_on(&geo::Point { x: -26.0564, y: -13.8449, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT));
+        assert!(l.is_on(&geo::Point { x: 44.2176, y: 19.9981, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT));
+
+        assert!(!l.is_on(&geo::Point { x: -35.0660, y: -18.1838, z: 0.0 }, false, crate::DEFAULT_TOLERANCE_POINT ));
+        assert!(l.is_on(&geo::Point { x: -35.0660, y: -18.1838, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT ));
+        assert!(!l.is_on(&geo::Point { x: 57.7321, y: 26.5065, z: 0.0 }, false, crate::DEFAULT_TOLERANCE_POINT ));
+        assert!(l.is_on(&geo::Point { x: 57.7321, y: 26.5065, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT ));
+
+        assert!(!l.is_on(&geo::Point { x: -12.6810, y: -2.9175, z: 0.0}, true, crate::DEFAULT_TOLERANCE_POINT));
+        assert!(!l.is_on(&geo::Point { x: 18.7406, y: 5.9941, z: 0.0}, true, crate::DEFAULT_TOLERANCE_POINT));
     }
 }
