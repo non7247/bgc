@@ -8,16 +8,16 @@ pub struct Vector {
 }
 
 impl Vector {
-    pub fn x_axis() -> Vector {
-        Vector { x: 1.0, y: 0.0, z: 0.0 }
+    pub fn x_axis() -> Self {
+        Self { x: 1.0, y: 0.0, z: 0.0 }
     }
 
-    pub fn y_axis() -> Vector {
-        Vector { x: 0.0, y: 1.0, z: 0.0 }
+    pub fn y_axis() -> Self {
+        Self { x: 0.0, y: 1.0, z: 0.0 }
     }
 
-    pub fn z_axis() -> Vector {
-        Vector { x: 0.0, y: 0.0, z: 1.0 }
+    pub fn z_axis() -> Self {
+        Self { x: 0.0, y: 0.0, z: 1.0 }
     }
 
     pub fn length(&self) -> f64 {
@@ -25,7 +25,7 @@ impl Vector {
     }
 
     pub fn is_equal_to(&self, rhs: &Self, tol: f64) -> bool {
-        let diff = Vector { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z };
+        let diff = Self { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z };
         diff.length() < tol
     }
 
@@ -33,10 +33,20 @@ impl Vector {
         let l = self.length();
 
         if l < tol {
-            Vector { x: self.x, y: self.y, z: self.z }
+            Self { x: self.x, y: self.y, z: self.z }
         } else {
-            Vector { x: self.x / l, y: self.y / l, z: self.z / l }
+            Self { x: self.x / l, y: self.y / l, z: self.z / l }
         }
+    }
+
+    pub fn inner_product(&self, rhs: &Self) -> f64 {
+        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+    }
+
+    pub fn outer_product(&self, rhs: &Self) -> Self {
+        Self { x: self.y * rhs.z - self.z * rhs.y,
+               y: self.z * rhs.x - self.x * rhs.z,
+               z: self.x * rhs.y - self.y * rhs.x }
     }
 }
 
