@@ -87,12 +87,8 @@ impl Line {
         let dir_self = self.direction();
         let dir_other = l.direction();
 
-        if (dist_start - dist_end).abs() <= tol &&
-                (dir_self.is_equal_to(&dir_other, crate::DEFAULT_TOLERANCE_VECTOR) ||
-                 dir_self.is_equal_to(&(dir_other * -1.0), crate::DEFAULT_TOLERANCE_CONVERGENCE)) {
-            return true;
-        }
-
-        false
+        (dist_start - dist_end).abs() <= tol &&
+        (dir_self.is_equal_to(&dir_other, crate::DEFAULT_TOLERANCE_VECTOR) ||
+         dir_self.is_equal_to(&(dir_other * -1.0), crate::DEFAULT_TOLERANCE_CONVERGENCE))
     }
 }
