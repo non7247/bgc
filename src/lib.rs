@@ -5,6 +5,7 @@ pub const DEFAULT_TOLERANCE_CONVERGENCE: f64 = 1.0e-6;
 pub const DEFAULT_TOLERANCE_POINT: f64 = 1.0e-4;
 pub const DEFAULT_TOLERANCE_VECTOR: f64 = 1.0e-6;
 
+#[derive(PartialOrd, PartialEq, Debug)]
 pub enum ErrorStatus {
     Ok,
     InvalidInput,

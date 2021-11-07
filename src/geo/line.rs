@@ -1,5 +1,6 @@
 use super::Point;
 use super::Vector;
+use crate::ErrorStatus;
 
 #[derive(Debug)]
 pub struct Line {
@@ -89,7 +90,62 @@ impl Line {
 
         (dist_start - dist_end).abs() <= tol &&
         (dir_self.is_equal_to(&dir_other, crate::DEFAULT_TOLERANCE_VECTOR) ||
-         dir_self.is_equal_to(&(dir_other * -1.0), crate::DEFAULT_TOLERANCE_CONVERGENCE))
+         dir_self.is_equal_to(&(dir_other * -1.0), crate::DEFAULT_TOLERANCE_VECTOR))
+    }
+
+    /// Calculates an intersection point of two lines
+    /// 
+    /// line1 = (x - x1)/l1 = (y - y1)/m1 = (z - z1)/n1 ... this line <br>
+    /// line2 = (x - x2)/l2 = (y - y2)/m2 = (z - z2)/n2 ... other line
+    ///
+    /// ix1 = x1 + l1*L1, iy1 = y1 + m1*L1, iz1 = z1 + n1*L1 ... intersection point on line1 <br>
+    /// ix2 = x2 + l2*L2, iy2 = y2 + m2*L2, iz2 = z2 + n2*L2 ... intersection point on line2
+    ///
+    /// L1 = (S2*Q + S1)/(1 - Q^2) <br>
+    /// L2 = (S1*Q + S2)/(1 - Q^2) <br>
+    /// Q = l1*l2 + m1*m2 + n1*n2 <br>
+    /// S1 = l1*X + m1*Y +n1*Z <br>
+    /// S2 = -(l2*X + m2*Y + n2*Z) <br>
+    /// X = x2 - x1, Y = y2 - y1, Z = z2 - z1
+    pub fn intersect_with_line(&self, other: &Self, extends: bool, tol: f64) -> Result<Point, ErrorStatus> {
+        if self.start_point.is_equal_to(&other.start_point, tol) ||
+                self.start_point.is_equal_to(&other.end_point, tol) {
+            return Ok(self.start_point);
+        }
+        if self.end_point.is_equal_to(&other.start_point, tol) ||
+                self.end_point.is_equal_to(&other.end_point, tol) {
+            return Ok(self.end_point);
+        }
+
+        if self.is_parallel(&other, tol) {
+            return Err(ErrorStatus::MustBeNonZero);
+        }
+
+        let dir1 = self.direction();
+        let dir2 = other.direction();
+
+        let q = dir1.inner_product(&dir2);
+
+        let start_to_start = other.start_point - self.start_point;
+
+        let s1 = dir1.inner_product(&start_to_start);
+        let s2 = -(dir2.inner_product(&start_to_start));
+
+        let l1 = (s2 * q + s1) / (1.0 - q * q);
+        let l2 = (s1 * q + s2) / (1.0 - q * q);
+
+        let int_p1 = self.start_point + dir1 * l1;
+        let int_p2 = other.start_point + dir2 * l2;
+
+        if !self.is_on(&int_p1, extends, tol) || !other.is_on(&int_p2, extends, tol) {
+            return Err(ErrorStatus::InvalidInput);
+        }
+
+        if int_p1.is_equal_to(&int_p2, tol) {
+            return Ok(int_p1);
+        }
+
+        Err(ErrorStatus::InvalidInput)
     }
 }
 
@@ -144,5 +200,44 @@ mod tests {
 
         assert!(!l.is_on(&Point { x: -12.6810, y: -2.9175, z: 0.0}, true, crate::DEFAULT_TOLERANCE_POINT));
         assert!(!l.is_on(&Point { x: 18.7406, y: 5.9941, z: 0.0}, true, crate::DEFAULT_TOLERANCE_POINT));
+    }
+
+    #[test]
+    fn line_intersect_with_line_xy_axis_first_quadrant() {
+        let l1 = Line { start_point: Point { x: 1.0, y: 1.0, z: 0.0 },
+                        end_point: Point { x: 7.0, y: 7.0, z: 0.0 } };
+        let l2 = Line { start_point: Point { x: 2.0, y: 6.0, z: 0.0 },
+                        end_point: Point { x: 6.0, y: 1.0, z: 0.0 } };
+
+        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+        
+        let _p = match p {
+            Ok(ip) => {
+                assert!(ip.is_equal_to(&Point { x: 34.0/9.0, y: 34.0/9.0, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT));
+                ip
+            },
+            Err(error) => {
+                panic!("error in intersection_with_line: {:?}", error)
+            },
+        };
+    }
+
+    #[test]
+    fn line_intersect_with_line_xy_axis_first_quadrant_fail() {
+        let l1 = Line { start_point: Point { x: 1.0, y: 1.0, z: 0.0 },
+                        end_point: Point { x: 7.0, y: 7.0, z: 0.0 } };
+        let l2 = Line { start_point: Point { x: 6.0, y: 1.0, z: 0.0 },
+                        end_point: Point { x: 6.0, y: 1.0, z: 0.0 } };
+
+        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+
+        let _p = match p {
+            Ok(_ip) => {
+                panic!("this test should be error.");
+            },
+            Err(error) => {
+                assert_eq!(error, ErrorStatus::InvalidInput);
+            },
+        };
     }
 }
