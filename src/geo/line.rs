@@ -98,14 +98,14 @@ impl Line {
     /// line1 = (x - x1)/l1 = (y - y1)/m1 = (z - z1)/n1 ... this line <br>
     /// line2 = (x - x2)/l2 = (y - y2)/m2 = (z - z2)/n2 ... other line
     ///
-    /// ix1 = x1 + l1*L1, iy1 = y1 + m1*L1, iz1 = z1 + n1*L1 ... intersection point on line1 <br>
-    /// ix2 = x2 + l2*L2, iy2 = y2 + m2*L2, iz2 = z2 + n2*L2 ... intersection point on line2
+    /// ix1 = x1 + l1\*L1, iy1 = y1 + m1\*L1, iz1 = z1 + n1\*L1 ... intersection point on line1 <br>
+    /// ix2 = x2 + l2\*L2, iy2 = y2 + m2\*L2, iz2 = z2 + n2\*L2 ... intersection point on line2
     ///
-    /// L1 = (S2*Q + S1)/(1 - Q^2) <br>
-    /// L2 = (S1*Q + S2)/(1 - Q^2) <br>
-    /// Q = l1*l2 + m1*m2 + n1*n2 <br>
-    /// S1 = l1*X + m1*Y +n1*Z <br>
-    /// S2 = -(l2*X + m2*Y + n2*Z) <br>
+    /// L1 = (S2\*Q + S1)/(1 - Q^2) <br>
+    /// L2 = (S1\*Q + S2)/(1 - Q^2) <br>
+    /// Q = l1\*l2 + m1\*m2 + n1\*n2 <br>
+    /// S1 = l1\*X + m1\*Y +n1\*Z <br>
+    /// S2 = -(l2\*X + m2\*Y + n2\*Z) <br>
     /// X = x2 - x1, Y = y2 - y1, Z = z2 - z1
     pub fn intersect_with_line(&self, other: &Self, extends: bool, tol: f64) -> Result<Point, ErrorStatus> {
         if self.start_point.is_equal_to(&other.start_point, tol) ||
