@@ -92,3 +92,57 @@ impl Line {
          dir_self.is_equal_to(&(dir_other * -1.0), crate::DEFAULT_TOLERANCE_CONVERGENCE))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn line_length() {
+        let l = Line { start_point: Point { x: 0.0, y: 0.0, z: 0.0},
+                       end_point: Point { x: 1.0, y: 1.0, z: 0.0} };
+        assert!((l.length() - 2.0_f64.sqrt()).abs() < crate::DEFAULT_TOLERANCE_POINT);
+    }
+
+    #[test]
+    fn line_get_closest_point() {
+        let l = Line { start_point: Point { x: 1379.591836, y: 1159.400383, z: 0.0 },
+                       end_point: Point { x: 3079.683229, y: 2067.058311, z: 0.0 } };
+
+        let p = l.get_closest_point(&Point { x: 3908.885031, y: 1901.285447, z: 0.0 },
+                                    false, crate::DEFAULT_TOLERANCE_POINT);
+        assert!(p.is_equal_to(&Point { x: 3079.683229, y: 2067.058311, z: 0.0 },
+                              crate::DEFAULT_TOLERANCE_POINT));
+        let p = l.get_closest_point(&Point { x: 3908.885031, y: 1901.285447, z: 0.0 },
+                                    true, crate::DEFAULT_TOLERANCE_POINT);
+        assert!(p.is_equal_to(&Point { x: 3656.085482, y: 2374.792398, z: 0.0 },
+                              crate::DEFAULT_TOLERANCE_POINT));
+
+        let p = l.get_closest_point(&Point { x: 569.433291, y: 1366.238184, z: 0.0 },
+                                    false, crate::DEFAULT_TOLERANCE_POINT);
+        assert!(p.is_equal_to(&Point { x: 1379.591836, y: 1159.400383, z: 0.0 },
+                              crate::DEFAULT_TOLERANCE_POINT));
+        let p = l.get_closest_point(&Point { x: 569.433291, y: 1366.238184, z: 0.0 },
+                                    true, crate::DEFAULT_TOLERANCE_POINT);
+        assert!(p.is_equal_to(&Point { x: 835.069873, y: 868.686791, z: 0.0 },
+                              crate::DEFAULT_TOLERANCE_POINT));
+    }
+
+    #[test]
+    fn line_is_on() {
+        let l = Line { start_point: Point { x: -26.0564, y: -13.8449, z: 0.0 },
+                       end_point: Point { x: 44.2176, y: 19.9981, z: 0.0 } };
+
+        assert!(l.is_on(&Point { x: 0.2074, y: -1.1966, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT));
+        assert!(l.is_on(&Point { x: -26.0564, y: -13.8449, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT));
+        assert!(l.is_on(&Point { x: 44.2176, y: 19.9981, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT));
+
+        assert!(!l.is_on(&Point { x: -35.0660, y: -18.1838, z: 0.0 }, false, crate::DEFAULT_TOLERANCE_POINT ));
+        assert!(l.is_on(&Point { x: -35.0660, y: -18.1838, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT ));
+        assert!(!l.is_on(&Point { x: 57.7321, y: 26.5065, z: 0.0 }, false, crate::DEFAULT_TOLERANCE_POINT ));
+        assert!(l.is_on(&Point { x: 57.7321, y: 26.5065, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT ));
+
+        assert!(!l.is_on(&Point { x: -12.6810, y: -2.9175, z: 0.0}, true, crate::DEFAULT_TOLERANCE_POINT));
+        assert!(!l.is_on(&Point { x: 18.7406, y: 5.9941, z: 0.0}, true, crate::DEFAULT_TOLERANCE_POINT));
+    }
+}
