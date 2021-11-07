@@ -211,10 +211,9 @@ mod tests {
 
         let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
         
-        let _p = match p {
+        match p {
             Ok(ip) => {
                 assert!(ip.is_equal_to(&Point { x: 34.0/9.0, y: 34.0/9.0, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT));
-                ip
             },
             Err(error) => {
                 panic!("error in intersection_with_line: {:?}", error)
@@ -231,7 +230,7 @@ mod tests {
 
         let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
 
-        let _p = match p {
+        match p {
             Ok(_ip) => {
                 panic!("this test should be error.");
             },
