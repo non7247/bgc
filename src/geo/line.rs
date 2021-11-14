@@ -216,7 +216,7 @@ mod tests {
                 assert!(ip.is_equal_to(&Point { x: 34.0/9.0, y: 34.0/9.0, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT));
             },
             Err(error) => {
-                panic!("error in intersection_with_line: {:?}", error)
+                panic!("error in intersect_with_line: {:?}", error)
             },
         };
     }
@@ -233,6 +233,178 @@ mod tests {
         match p {
             Ok(_ip) => {
                 panic!("this test should be error.");
+            },
+            Err(error) => {
+                assert_eq!(error, ErrorStatus::InvalidInput);
+            },
+        };
+    }
+
+    #[test]
+    fn line_intersect_with_line_xy_axis_second_quadrant() {
+        let l1 = Line { start_point: Point { x: -4.0, y: 4.0, z: 0.0 },
+                        end_point: Point { x: -1.0, y: 1.0, z: 0.0 } };
+        let l2 = Line { start_point: Point { x: -3.0, y: 1.0, z: 0.0 },
+                        end_point: Point { x: -1.0, y: 3.0, z: 0.0 } };
+
+        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+
+        match p {
+            Ok(ip) => {
+                assert!(ip.is_equal_to(&Point { x: -2.0, y: 2.0, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT))
+            },
+            Err(error) => {
+                panic!("error in intersect_with_line: {:?}", error)
+            },
+        };
+    }
+
+    #[test]
+    fn line_intersect_with_line_xy_axis_third_quadrant() {
+        let l1 = Line { start_point: Point { x: -4.0, y: -4.0, z: 0.0 },
+                        end_point: Point { x: -1.0, y: -1.0, z: 0.0 } };
+        let l2 = Line { start_point: Point { x: -3.0, y: -1.0, z: 0.0 },
+                        end_point: Point { x: -1.0, y: -3.0, z: 0.0 } };
+
+        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+
+        match p {
+            Ok(ip) => {
+                assert!(ip.is_equal_to(&Point { x: -2.0, y: -2.0, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT))
+            },
+            Err(error) => {
+                panic!("error in intersect_with_line: {:?}", error)
+            },
+        };
+    }
+
+    #[test]
+    fn line_intersect_with_line_xy_axis_fourth_quadrant() {
+        let l1 = Line { start_point: Point { x: 4.0, y: -4.0, z: 0.0 },
+                        end_point: Point { x: 1.0, y: -1.0, z: 0.0 } };
+        let l2 = Line { start_point: Point { x: 3.0, y: -1.0, z: 0.0 },
+                        end_point: Point { x: 1.0, y: -3.0, z: 0.0 } };
+
+        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+
+        match p {
+            Ok(ip) => {
+                assert!(ip.is_equal_to(&Point { x: 2.0, y: -2.0, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT))
+            },
+            Err(error) => {
+                panic!("error in intersect_with_line: {:?}", error)
+            },
+        };
+    }
+
+    #[test]
+    fn line_intersect_with_line_yz_axis() {
+        let l1 = Line { start_point: Point { x: 0.0, y: 4.0, z: -4.0 },
+                        end_point: Point { x: 0.0, y: 1.0, z: -1.0 } };
+        let l2 = Line { start_point: Point { x: 0.0, y: 3.0, z: -1.0 },
+                        end_point: Point { x: 0.0, y: 1.0, z: -3.0 } };
+
+        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+
+        match p {
+            Ok(ip) => {
+                assert!(ip.is_equal_to(&Point { x: 0.0, y: 2.0, z: -2.0 }, crate::DEFAULT_TOLERANCE_POINT))
+            },
+            Err(error) => {
+                panic!("error in intersect_with_line: {:?}", error)
+            },
+        };
+    }
+
+    #[test]
+    fn line_intersect_with_line_xz_axis() {
+        let l1 = Line { start_point: Point { x: 4.0, y: 0.0, z: -4.0 },
+                        end_point: Point { x: 1.0, y: 0.0, z: -1.0 } };
+        let l2 = Line { start_point: Point { x: 3.0, y: 0.0, z: -1.0 },
+                        end_point: Point { x: 1.0, y: 0.0, z: -3.0 } };
+
+        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+
+        match p {
+            Ok(ip) => {
+                assert!(ip.is_equal_to(&Point { x: 2.0, y: 0.0, z: -2.0 }, crate::DEFAULT_TOLERANCE_POINT))
+            },
+            Err(error) => {
+                panic!("error in intersect_with_line: {:?}", error)
+            },
+        };
+    }
+
+    #[test]
+    fn line_intersect_with_line_entpoints() {
+        let l1 = Line { start_point: Point { x: 0.0, y: 6.0, z: 5.0 },
+                        end_point: Point { x: 8.0, y: 0.0, z: 3.0 } };
+        let l2 = Line { start_point: Point { x: 1.0, y: 0.0, z: 10.0 },
+                        end_point: Point { x: 8.0, y: 0.0, z: 3.0 } };
+
+        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+
+        match p {
+            Ok(ip) => {
+                assert!(ip.is_equal_to(&Point { x: 8.0, y: 0.0, z: 3.0 }, crate::DEFAULT_TOLERANCE_POINT))
+            },
+            Err(error) => {
+                panic!("error in intersect_with_line: {:?}", error)
+            },
+        };
+    }
+
+    #[test]
+    fn line_intersect_with_line_with_extend() {
+        let l1 = Line { start_point: Point { x: 268.3669, y: 445.9483, z: 0.0 },
+                        end_point: Point { x: 1596.5413, y: 1349.3888, z: 0.0 } };
+        let l2 = Line { start_point: Point { x: 1918.3457, y: 1355.2363, z: 0.0 },
+                        end_point: Point { x: 2588.2839, y: 355.3119, z: 0.0 } };
+
+        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+
+        match p {
+            Ok(_ip) => {
+                panic!("thie test should be error.");
+            },
+            Err(error) => {
+                assert_eq!(error, ErrorStatus::InvalidInput);
+            },
+        };
+
+        let p = l1.intersect_with_line(&l2, true, crate::DEFAULT_TOLERANCE_POINT);
+
+        match p {
+            Ok(ip) => {
+                assert!(ip.is_equal_to(&Point { x: 1820.2924, y: 1501.5870, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT));
+            },
+            Err(error) => {
+                panic!("error in intersect_with_line: {:?}", error)
+            },
+        };
+
+        let l3 = Line { start_point: Point { x: 268.3669, y: 445.9483, z: 10.0 },
+                        end_point: Point { x: 1596.5413, y: 1349.3888, z: 10.0 } };
+
+        let p = l1.intersect_with_line(&l3, true, crate::DEFAULT_TOLERANCE_POINT);
+
+        match p {
+            Ok(_ip) => {
+                panic!("thie test should be error.");
+            },
+            Err(error) => {
+                assert_eq!(error, ErrorStatus::MustBeNonZero);
+            },
+        };
+
+        let l4 = Line { start_point: Point { x: 1918.3457, y: 1355.2363, z: 10.0 },
+                        end_point: Point { x: 2588.2839, y: 355.3119, z: 10.0 } };
+
+        let p = l1.intersect_with_line(&l4, true, crate::DEFAULT_TOLERANCE_POINT);
+
+        match p {
+            Ok(_ip) => {
+                panic!("thie test should be error.");
             },
             Err(error) => {
                 assert_eq!(error, ErrorStatus::InvalidInput);
