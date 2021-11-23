@@ -1,6 +1,6 @@
 use super::Point;
 use super::Vector;
-use crate::ErrorStatus;
+use crate::{ ErrorStatus, Tolerance };
 
 #[derive(Debug)]
 pub struct Line {
@@ -14,7 +14,7 @@ impl Line {
     }
 
     pub fn direction(&self) -> Vector {
-        (self.end_point - self.start_point).normal(crate::DEFAULT_TOLERANCE_VECTOR)
+        (self.end_point - self.start_point).normal(&Tolerance::default())
     }
 
     /// Calculates the closest point on this curve to input point.
@@ -26,7 +26,7 @@ impl Line {
     /// ya = y1 + mt <br>
     /// za = z1 + nt <br>
     /// t = (x0 - x1)l + (y0 - y1)m + (z0 - z1)n
-    pub fn get_closest_point(&self, p0: &Point, extends: bool, tol: f64) -> Point {
+    pub fn get_closest_point(&self, p0: &Point, extends: bool, tol: &Tolerance) -> Point {
         if p0.is_equal_to(&self.start_point, tol) {
             return self.start_point;
         }
@@ -45,9 +45,9 @@ impl Line {
                                   z: self.start_point.z + uvec.z * t };
 
         if !extends {
-            let to_closest = (closest - self.start_point).normal(crate::DEFAULT_TOLERANCE_VECTOR);
+            let to_closest = (closest - self.start_point).normal(tol);
             
-            if to_closest.is_equal_to(&(uvec * -1.0), crate::DEFAULT_TOLERANCE_VECTOR) {
+            if to_closest.is_equal_to(&(uvec * -1.0), tol) {
                 closest = self.start_point;
             } else {
                 if self.length() < closest.distance_to(&self.start_point) {
@@ -60,7 +60,7 @@ impl Line {
     }
 
     /// Determines if input point lies on this line.
-    pub fn is_on(&self, p: &Point, extends: bool, tol: f64) -> bool {
+    pub fn is_on(&self, p: &Point, extends: bool, tol: &Tolerance) -> bool {
         if p.is_equal_to(&self.start_point, tol) || p.is_equal_to(&self.end_point, tol) {
             return true;
         }
@@ -71,14 +71,14 @@ impl Line {
     }
 
     /// Determines if input line is parallel to this line.
-    pub fn is_parallel(&self, l: &Self, tol: f64) -> bool {
+    pub fn is_parallel(&self, l: &Self, tol: &Tolerance) -> bool {
         let closest_start = l.get_closest_point(&self.start_point, true, tol);
         let closest_end = l.get_closest_point(&self.end_point, true, tol);
 
-        let dir_start = (closest_start - self.start_point).normal(crate::DEFAULT_TOLERANCE_VECTOR);
-        let dir_end = (closest_end - self.end_point).normal(crate::DEFAULT_TOLERANCE_VECTOR);
+        let dir_start = (closest_start - self.start_point).normal(tol);
+        let dir_end = (closest_end - self.end_point).normal(tol);
 
-        if !dir_start.is_equal_to(&dir_end, crate::DEFAULT_TOLERANCE_VECTOR) {
+        if !dir_start.is_equal_to(&dir_end, tol) {
             return false;
         }
 
@@ -88,9 +88,9 @@ impl Line {
         let dir_self = self.direction();
         let dir_other = l.direction();
 
-        (dist_start - dist_end).abs() <= tol &&
-        (dir_self.is_equal_to(&dir_other, crate::DEFAULT_TOLERANCE_VECTOR) ||
-         dir_self.is_equal_to(&(dir_other * -1.0), crate::DEFAULT_TOLERANCE_VECTOR))
+        (dist_start - dist_end).abs() <= tol.equal_point() &&
+        (dir_self.is_equal_to(&dir_other, tol) ||
+         dir_self.is_equal_to(&(dir_other * -1.0), tol))
     }
 
     /// Calculates an intersection point of two lines
@@ -107,7 +107,7 @@ impl Line {
     /// S1 = l1\*X + m1\*Y +n1\*Z <br>
     /// S2 = -(l2\*X + m2\*Y + n2\*Z) <br>
     /// X = x2 - x1, Y = y2 - y1, Z = z2 - z1
-    pub fn intersect_with_line(&self, other: &Self, extends: bool, tol: f64) -> Result<Point, ErrorStatus> {
+    pub fn intersect_with_line(&self, other: &Self, extends: bool, tol: &Tolerance) -> Result<Point, ErrorStatus> {
         if self.start_point.is_equal_to(&other.start_point, tol) ||
                 self.start_point.is_equal_to(&other.end_point, tol) {
             return Ok(self.start_point);
@@ -157,7 +157,7 @@ mod tests {
     fn line_length() {
         let l = Line { start_point: Point { x: 0.0, y: 0.0, z: 0.0},
                        end_point: Point { x: 1.0, y: 1.0, z: 0.0} };
-        assert!((l.length() - 2.0_f64.sqrt()).abs() < crate::DEFAULT_TOLERANCE_POINT);
+        assert!((l.length() - 2.0_f64.sqrt()).abs() < Tolerance::default().equal_point());
     }
 
     #[test]
@@ -166,22 +166,22 @@ mod tests {
                        end_point: Point { x: 3079.683229, y: 2067.058311, z: 0.0 } };
 
         let p = l.get_closest_point(&Point { x: 3908.885031, y: 1901.285447, z: 0.0 },
-                                    false, crate::DEFAULT_TOLERANCE_POINT);
+                                    false, &Tolerance::default());
         assert!(p.is_equal_to(&Point { x: 3079.683229, y: 2067.058311, z: 0.0 },
-                              crate::DEFAULT_TOLERANCE_POINT));
+                              &Tolerance::default()));
         let p = l.get_closest_point(&Point { x: 3908.885031, y: 1901.285447, z: 0.0 },
-                                    true, crate::DEFAULT_TOLERANCE_POINT);
+                                    true, &Tolerance::default());
         assert!(p.is_equal_to(&Point { x: 3656.085482, y: 2374.792398, z: 0.0 },
-                              crate::DEFAULT_TOLERANCE_POINT));
+                              &Tolerance::default()));
 
         let p = l.get_closest_point(&Point { x: 569.433291, y: 1366.238184, z: 0.0 },
-                                    false, crate::DEFAULT_TOLERANCE_POINT);
+                                    false, &Tolerance::default());
         assert!(p.is_equal_to(&Point { x: 1379.591836, y: 1159.400383, z: 0.0 },
-                              crate::DEFAULT_TOLERANCE_POINT));
+                              &Tolerance::default()));
         let p = l.get_closest_point(&Point { x: 569.433291, y: 1366.238184, z: 0.0 },
-                                    true, crate::DEFAULT_TOLERANCE_POINT);
+                                    true, &Tolerance::default());
         assert!(p.is_equal_to(&Point { x: 835.069873, y: 868.686791, z: 0.0 },
-                              crate::DEFAULT_TOLERANCE_POINT));
+                              &Tolerance::default()));
     }
 
     #[test]
@@ -189,17 +189,17 @@ mod tests {
         let l = Line { start_point: Point { x: -26.0564, y: -13.8449, z: 0.0 },
                        end_point: Point { x: 44.2176, y: 19.9981, z: 0.0 } };
 
-        assert!(l.is_on(&Point { x: 0.2074, y: -1.1966, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT));
-        assert!(l.is_on(&Point { x: -26.0564, y: -13.8449, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT));
-        assert!(l.is_on(&Point { x: 44.2176, y: 19.9981, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT));
+        assert!(l.is_on(&Point { x: 0.2074, y: -1.1966, z: 0.0 }, true, &Tolerance::default()));
+        assert!(l.is_on(&Point { x: -26.0564, y: -13.8449, z: 0.0 }, true, &Tolerance::default()));
+        assert!(l.is_on(&Point { x: 44.2176, y: 19.9981, z: 0.0 }, true, &Tolerance::default()));
 
-        assert!(!l.is_on(&Point { x: -35.0660, y: -18.1838, z: 0.0 }, false, crate::DEFAULT_TOLERANCE_POINT ));
-        assert!(l.is_on(&Point { x: -35.0660, y: -18.1838, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT ));
-        assert!(!l.is_on(&Point { x: 57.7321, y: 26.5065, z: 0.0 }, false, crate::DEFAULT_TOLERANCE_POINT ));
-        assert!(l.is_on(&Point { x: 57.7321, y: 26.5065, z: 0.0 }, true, crate::DEFAULT_TOLERANCE_POINT ));
+        assert!(!l.is_on(&Point { x: -35.0660, y: -18.1838, z: 0.0 }, false, &Tolerance::default()));
+        assert!(l.is_on(&Point { x: -35.0660, y: -18.1838, z: 0.0 }, true, &Tolerance::default()));
+        assert!(!l.is_on(&Point { x: 57.7321, y: 26.5065, z: 0.0 }, false, &Tolerance::default()));
+        assert!(l.is_on(&Point { x: 57.7321, y: 26.5065, z: 0.0 }, true, &Tolerance::default()));
 
-        assert!(!l.is_on(&Point { x: -12.6810, y: -2.9175, z: 0.0}, true, crate::DEFAULT_TOLERANCE_POINT));
-        assert!(!l.is_on(&Point { x: 18.7406, y: 5.9941, z: 0.0}, true, crate::DEFAULT_TOLERANCE_POINT));
+        assert!(!l.is_on(&Point { x: -12.6810, y: -2.9175, z: 0.0}, true, &Tolerance::default()));
+        assert!(!l.is_on(&Point { x: 18.7406, y: 5.9941, z: 0.0}, true, &Tolerance::default()));
     }
 
     #[test]
@@ -209,11 +209,11 @@ mod tests {
         let l2 = Line { start_point: Point { x: 2.0, y: 6.0, z: 0.0 },
                         end_point: Point { x: 6.0, y: 1.0, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
         
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 34.0/9.0, y: 34.0/9.0, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT));
+                assert!(ip.is_equal_to(&Point { x: 34.0/9.0, y: 34.0/9.0, z: 0.0 }, &Tolerance::default()));
             },
             Err(error) => {
                 panic!("error in intersect_with_line: {:?}", error)
@@ -228,7 +228,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: 6.0, y: 1.0, z: 0.0 },
                         end_point: Point { x: 6.0, y: 1.0, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
 
         match p {
             Ok(_ip) => {
@@ -247,11 +247,11 @@ mod tests {
         let l2 = Line { start_point: Point { x: -3.0, y: 1.0, z: 0.0 },
                         end_point: Point { x: -1.0, y: 3.0, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: -2.0, y: 2.0, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT))
+                assert!(ip.is_equal_to(&Point { x: -2.0, y: 2.0, z: 0.0 }, &Tolerance::default()))
             },
             Err(error) => {
                 panic!("error in intersect_with_line: {:?}", error)
@@ -266,11 +266,11 @@ mod tests {
         let l2 = Line { start_point: Point { x: -3.0, y: -1.0, z: 0.0 },
                         end_point: Point { x: -1.0, y: -3.0, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: -2.0, y: -2.0, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT))
+                assert!(ip.is_equal_to(&Point { x: -2.0, y: -2.0, z: 0.0 }, &Tolerance::default()))
             },
             Err(error) => {
                 panic!("error in intersect_with_line: {:?}", error)
@@ -285,11 +285,11 @@ mod tests {
         let l2 = Line { start_point: Point { x: 3.0, y: -1.0, z: 0.0 },
                         end_point: Point { x: 1.0, y: -3.0, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 2.0, y: -2.0, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT))
+                assert!(ip.is_equal_to(&Point { x: 2.0, y: -2.0, z: 0.0 }, &Tolerance::default()))
             },
             Err(error) => {
                 panic!("error in intersect_with_line: {:?}", error)
@@ -304,11 +304,11 @@ mod tests {
         let l2 = Line { start_point: Point { x: 0.0, y: 3.0, z: -1.0 },
                         end_point: Point { x: 0.0, y: 1.0, z: -3.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 0.0, y: 2.0, z: -2.0 }, crate::DEFAULT_TOLERANCE_POINT))
+                assert!(ip.is_equal_to(&Point { x: 0.0, y: 2.0, z: -2.0 }, &Tolerance::default()))
             },
             Err(error) => {
                 panic!("error in intersect_with_line: {:?}", error)
@@ -323,11 +323,11 @@ mod tests {
         let l2 = Line { start_point: Point { x: 3.0, y: 0.0, z: -1.0 },
                         end_point: Point { x: 1.0, y: 0.0, z: -3.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 2.0, y: 0.0, z: -2.0 }, crate::DEFAULT_TOLERANCE_POINT))
+                assert!(ip.is_equal_to(&Point { x: 2.0, y: 0.0, z: -2.0 }, &Tolerance::default()))
             },
             Err(error) => {
                 panic!("error in intersect_with_line: {:?}", error)
@@ -342,11 +342,11 @@ mod tests {
         let l2 = Line { start_point: Point { x: 1.0, y: 0.0, z: 10.0 },
                         end_point: Point { x: 8.0, y: 0.0, z: 3.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 8.0, y: 0.0, z: 3.0 }, crate::DEFAULT_TOLERANCE_POINT))
+                assert!(ip.is_equal_to(&Point { x: 8.0, y: 0.0, z: 3.0 }, &Tolerance::default()))
             },
             Err(error) => {
                 panic!("error in intersect_with_line: {:?}", error)
@@ -361,7 +361,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: 1918.3457, y: 1355.2363, z: 0.0 },
                         end_point: Point { x: 2588.2839, y: 355.3119, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
 
         match p {
             Ok(_ip) => {
@@ -372,11 +372,11 @@ mod tests {
             },
         };
 
-        let p = l1.intersect_with_line(&l2, true, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l2, true, &Tolerance::default());
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 1820.2924, y: 1501.5870, z: 0.0 }, crate::DEFAULT_TOLERANCE_POINT));
+                assert!(ip.is_equal_to(&Point { x: 1820.2924, y: 1501.5870, z: 0.0 }, &Tolerance::default()));
             },
             Err(error) => {
                 panic!("error in intersect_with_line: {:?}", error)
@@ -386,7 +386,7 @@ mod tests {
         let l3 = Line { start_point: Point { x: 268.3669, y: 445.9483, z: 10.0 },
                         end_point: Point { x: 1596.5413, y: 1349.3888, z: 10.0 } };
 
-        let p = l1.intersect_with_line(&l3, true, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l3, true, &Tolerance::default());
 
         match p {
             Ok(_ip) => {
@@ -400,7 +400,7 @@ mod tests {
         let l4 = Line { start_point: Point { x: 1918.3457, y: 1355.2363, z: 10.0 },
                         end_point: Point { x: 2588.2839, y: 355.3119, z: 10.0 } };
 
-        let p = l1.intersect_with_line(&l4, true, crate::DEFAULT_TOLERANCE_POINT);
+        let p = l1.intersect_with_line(&l4, true, &Tolerance::default());
 
         match p {
             Ok(_ip) => {

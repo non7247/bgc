@@ -1,4 +1,5 @@
 use std::ops;
+use crate::Tolerance;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vector {
@@ -24,15 +25,15 @@ impl Vector {
         (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
     }
 
-    pub fn is_equal_to(&self, rhs: &Self, tol: f64) -> bool {
+    pub fn is_equal_to(&self, rhs: &Self, tol: &Tolerance) -> bool {
         let diff = Self { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z };
-        diff.length() < tol
+        diff.length() < tol.equal_vector()
     }
 
-    pub fn normal(&self, tol: f64) -> Self {
+    pub fn normal(&self, tol: &Tolerance) -> Self {
         let l = self.length();
 
-        if l < tol {
+        if l < tol.equal_vector() {
             Self { x: self.x, y: self.y, z: self.z }
         } else {
             Self { x: self.x / l, y: self.y / l, z: self.z / l }
@@ -107,11 +108,11 @@ mod tests {
         let lhs = Vector { x: 1.0, y: 2.0, z: 3.0 };
         let rhs = Vector { x: 1.0, y: 2.0, z: 3.0 };
 
-        assert!(lhs.is_equal_to(&rhs, crate::DEFAULT_TOLERANCE_VECTOR));
+        assert!(lhs.is_equal_to(&rhs, &Tolerance::default()));
 
         let rhs = Vector { x: 1.1, y: 2.1, z: 3.1 };
 
-        assert!(!lhs.is_equal_to(&rhs, crate::DEFAULT_TOLERANCE_VECTOR));
+        assert!(!lhs.is_equal_to(&rhs, &Tolerance::default()));
     }
 
     #[test]
@@ -121,16 +122,16 @@ mod tests {
 
         lhs += rhs;
 
-        assert!(lhs.is_equal_to(&Vector { x: 15.0, y: 5.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_VECTOR));
+        assert!(lhs.is_equal_to(&Vector { x: 15.0, y: 5.0, z: 10.0 }, &Tolerance::default()));
 
         lhs -= rhs;
 
-        assert!(lhs.is_equal_to(&Vector { x: 10.0, y: 10.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_VECTOR));
+        assert!(lhs.is_equal_to(&Vector { x: 10.0, y: 10.0, z: 10.0 }, &Tolerance::default()));
 
         let result = lhs + rhs;
-        assert!(result.is_equal_to(&Vector { x: 15.0, y: 5.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
+        assert!(result.is_equal_to(&Vector { x: 15.0, y: 5.0, z: 10.0 }, &Tolerance::default()));
 
         let result = lhs - rhs;
-        assert!(result.is_equal_to(&Vector { x: 5.0, y: 15.0, z: 10.0 }, crate::DEFAULT_TOLERANCE_POINT));
+        assert!(result.is_equal_to(&Vector { x: 5.0, y: 15.0, z: 10.0 }, &Tolerance::default()));
     }
 }
