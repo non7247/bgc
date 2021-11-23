@@ -20,3 +20,19 @@ pub enum ErrorStatus {
 
 mod math {
 }
+
+pub struct Tolerance {
+    pub equal_point: f64,
+    pub equal_vector: f64,
+    pub convergence: f64,
+    pub calculation: f64,
+}
+
+impl Default for Tolerance {
+    fn default() -> Self {
+        Self { equal_point: DEFAULT_TOLERANCE_POINT,
+               equal_vector: DEFAULT_TOLERANCE_VECTOR,
+               convergence: DEFAULT_TOLERANCE_CONVERGENCE,
+               calculation: DEFAULT_TOLERANCE_CALCULATION }
+    }
+}
