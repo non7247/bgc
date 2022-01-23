@@ -107,14 +107,16 @@ impl Line {
     /// S1 = l1\*X + m1\*Y +n1\*Z <br>
     /// S2 = -(l2\*X + m2\*Y + n2\*Z) <br>
     /// X = x2 - x1, Y = y2 - y1, Z = z2 - z1
-    pub fn intersect_with_line(&self, other: &Self, extends: bool, tol: &Tolerance) -> Result<Point, ErrorStatus> {
+    pub fn intersect_with_line(&self, other: &Self, extends: bool, tol: &Tolerance)
+            -> Result<Vec<Point>, ErrorStatus> {
+
         if self.start_point.is_equal_to(&other.start_point, tol) ||
                 self.start_point.is_equal_to(&other.end_point, tol) {
-            return Ok(self.start_point);
+            return Ok(vec![self.start_point]);
         }
         if self.end_point.is_equal_to(&other.start_point, tol) ||
                 self.end_point.is_equal_to(&other.end_point, tol) {
-            return Ok(self.end_point);
+            return Ok(vec![self.end_point]);
         }
 
         if self.is_parallel(&other, tol) {
@@ -142,7 +144,7 @@ impl Line {
         }
 
         if int_p1.is_equal_to(&int_p2, tol) {
-            return Ok(int_p1);
+            return Ok(vec![int_p1]);
         }
 
         Err(ErrorStatus::InvalidInput)
@@ -213,10 +215,11 @@ mod tests {
         
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 34.0/9.0, y: 34.0/9.0, z: 0.0 }, &Tolerance::default()));
+                assert!(ip[0].is_equal_to(&Point { x: 34.0/9.0, y: 34.0/9.0, z: 0.0 },
+                                          &Tolerance::default()));
             },
             Err(error) => {
-                panic!("error in intersect_with_line: {:?}", error)
+                panic!("error in intersect_with_line: {:?}", error);
             },
         };
     }
@@ -251,10 +254,11 @@ mod tests {
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: -2.0, y: 2.0, z: 0.0 }, &Tolerance::default()))
+                assert!(ip[0].is_equal_to(&Point { x: -2.0, y: 2.0, z: 0.0 },
+                                          &Tolerance::default()));
             },
             Err(error) => {
-                panic!("error in intersect_with_line: {:?}", error)
+                panic!("error in intersect_with_line: {:?}", error);
             },
         };
     }
@@ -270,10 +274,11 @@ mod tests {
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: -2.0, y: -2.0, z: 0.0 }, &Tolerance::default()))
+                assert!(ip[0].is_equal_to(&Point { x: -2.0, y: -2.0, z: 0.0 },
+                                          &Tolerance::default()));
             },
             Err(error) => {
-                panic!("error in intersect_with_line: {:?}", error)
+                panic!("error in intersect_with_line: {:?}", error);
             },
         };
     }
@@ -289,10 +294,11 @@ mod tests {
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 2.0, y: -2.0, z: 0.0 }, &Tolerance::default()))
+                assert!(ip[0].is_equal_to(&Point { x: 2.0, y: -2.0, z: 0.0 },
+                                          &Tolerance::default()));
             },
             Err(error) => {
-                panic!("error in intersect_with_line: {:?}", error)
+                panic!("error in intersect_with_line: {:?}", error);
             },
         };
     }
@@ -308,10 +314,11 @@ mod tests {
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 0.0, y: 2.0, z: -2.0 }, &Tolerance::default()))
+                assert!(ip[0].is_equal_to(&Point { x: 0.0, y: 2.0, z: -2.0 },
+                                          &Tolerance::default()));
             },
             Err(error) => {
-                panic!("error in intersect_with_line: {:?}", error)
+                panic!("error in intersect_with_line: {:?}", error);
             },
         };
     }
@@ -327,10 +334,11 @@ mod tests {
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 2.0, y: 0.0, z: -2.0 }, &Tolerance::default()))
+                assert!(ip[0].is_equal_to(&Point { x: 2.0, y: 0.0, z: -2.0 },
+                                          &Tolerance::default()));
             },
             Err(error) => {
-                panic!("error in intersect_with_line: {:?}", error)
+                panic!("error in intersect_with_line: {:?}", error);
             },
         };
     }
@@ -346,10 +354,11 @@ mod tests {
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 8.0, y: 0.0, z: 3.0 }, &Tolerance::default()))
+                assert!(ip[0].is_equal_to(&Point { x: 8.0, y: 0.0, z: 3.0 },
+                                          &Tolerance::default()));
             },
             Err(error) => {
-                panic!("error in intersect_with_line: {:?}", error)
+                panic!("error in intersect_with_line: {:?}", error);
             },
         };
     }
@@ -376,10 +385,11 @@ mod tests {
 
         match p {
             Ok(ip) => {
-                assert!(ip.is_equal_to(&Point { x: 1820.2924, y: 1501.5870, z: 0.0 }, &Tolerance::default()));
+                assert!(ip[0].is_equal_to(&Point { x: 1820.2924, y: 1501.5870, z: 0.0 },
+                                          &Tolerance::default()));
             },
             Err(error) => {
-                panic!("error in intersect_with_line: {:?}", error)
+                panic!("error in intersect_with_line: {:?}", error);
             },
         };
 
