@@ -91,6 +91,14 @@ impl Line {
         (dir_self.is_equal_to(&dir_other, tol) ||
          dir_self.is_equal_to(&(dir_other * -1.0), tol))
     }
+
+    /// Calculates intersection points of input curve and this line.
+    pub fn intersect_with<T>(&self, other: &T, extends: bool, tol: &Tolerance)
+            -> Result<Vec<Point>, ErrorStatus>
+        where T: Curve
+    {
+        other.intersect_with_line(&self, extends, tol)
+    }
 }
 
 impl Curve for Line {
@@ -212,7 +220,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: 2.0, y: 6.0, z: 0.0 },
                         end_point: Point { x: 6.0, y: 1.0, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
+        let p = l1.intersect_with(&l2, false, &Tolerance::default());
         
         match p {
             Ok(ip) => {
@@ -232,7 +240,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: 6.0, y: 1.0, z: 0.0 },
                         end_point: Point { x: 6.0, y: 1.0, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
+        let p = l1.intersect_with(&l2, false, &Tolerance::default());
 
         match p {
             Ok(_ip) => {
@@ -251,7 +259,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: -3.0, y: 1.0, z: 0.0 },
                         end_point: Point { x: -1.0, y: 3.0, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
+        let p = l1.intersect_with(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
@@ -271,7 +279,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: -3.0, y: -1.0, z: 0.0 },
                         end_point: Point { x: -1.0, y: -3.0, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
+        let p = l1.intersect_with(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
@@ -291,7 +299,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: 3.0, y: -1.0, z: 0.0 },
                         end_point: Point { x: 1.0, y: -3.0, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
+        let p = l1.intersect_with(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
@@ -311,7 +319,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: 0.0, y: 3.0, z: -1.0 },
                         end_point: Point { x: 0.0, y: 1.0, z: -3.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
+        let p = l1.intersect_with(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
@@ -331,7 +339,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: 3.0, y: 0.0, z: -1.0 },
                         end_point: Point { x: 1.0, y: 0.0, z: -3.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
+        let p = l1.intersect_with(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
@@ -351,7 +359,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: 1.0, y: 0.0, z: 10.0 },
                         end_point: Point { x: 8.0, y: 0.0, z: 3.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
+        let p = l1.intersect_with(&l2, false, &Tolerance::default());
 
         match p {
             Ok(ip) => {
@@ -371,7 +379,7 @@ mod tests {
         let l2 = Line { start_point: Point { x: 1918.3457, y: 1355.2363, z: 0.0 },
                         end_point: Point { x: 2588.2839, y: 355.3119, z: 0.0 } };
 
-        let p = l1.intersect_with_line(&l2, false, &Tolerance::default());
+        let p = l1.intersect_with(&l2, false, &Tolerance::default());
 
         match p {
             Ok(_ip) => {
@@ -382,7 +390,7 @@ mod tests {
             },
         };
 
-        let p = l1.intersect_with_line(&l2, true, &Tolerance::default());
+        let p = l1.intersect_with(&l2, true, &Tolerance::default());
 
         match p {
             Ok(ip) => {
@@ -397,7 +405,7 @@ mod tests {
         let l3 = Line { start_point: Point { x: 268.3669, y: 445.9483, z: 10.0 },
                         end_point: Point { x: 1596.5413, y: 1349.3888, z: 10.0 } };
 
-        let p = l1.intersect_with_line(&l3, true, &Tolerance::default());
+        let p = l1.intersect_with(&l3, true, &Tolerance::default());
 
         match p {
             Ok(_ip) => {
@@ -411,7 +419,7 @@ mod tests {
         let l4 = Line { start_point: Point { x: 1918.3457, y: 1355.2363, z: 10.0 },
                         end_point: Point { x: 2588.2839, y: 355.3119, z: 10.0 } };
 
-        let p = l1.intersect_with_line(&l4, true, &Tolerance::default());
+        let p = l1.intersect_with(&l4, true, &Tolerance::default());
 
         match p {
             Ok(_ip) => {
