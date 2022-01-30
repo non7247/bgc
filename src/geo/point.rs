@@ -25,6 +25,12 @@ impl Point {
     pub fn is_equal_to(&self, rhs: &Self, tol: &Tolerance) -> bool {
         self.distance_to(rhs) < tol.equal_point()
     }
+
+    pub fn calc_middle_point(&self, rhs: &Self) -> Self {
+        Point { x: (self.x + rhs.x) / 2.0,
+                y: (self.y + rhs.y) / 2.0,
+                z: (self.z + rhs.z) / 2.0 }
+    }
 }
 
 impl ops::AddAssign<Vector> for Point {
