@@ -1,5 +1,4 @@
-use super::Point;
-use super::Vector;
+use super::{ Point, Vector, Curve };
 use crate::{ ErrorStatus, Tolerance };
 
 #[derive(Debug)]
@@ -92,7 +91,9 @@ impl Line {
         (dir_self.is_equal_to(&dir_other, tol) ||
          dir_self.is_equal_to(&(dir_other * -1.0), tol))
     }
+}
 
+impl Curve for Line {
     /// Calculates an intersection point of two lines
     /// 
     /// line1 = (x - x1)/l1 = (y - y1)/m1 = (z - z1)/n1 ... this line <br>
@@ -107,7 +108,7 @@ impl Line {
     /// S1 = l1\*X + m1\*Y +n1\*Z <br>
     /// S2 = -(l2\*X + m2\*Y + n2\*Z) <br>
     /// X = x2 - x1, Y = y2 - y1, Z = z2 - z1
-    pub fn intersect_with_line(&self, other: &Self, extends: bool, tol: &Tolerance)
+    fn intersect_with_line(&self, other: &Self, extends: bool, tol: &Tolerance)
             -> Result<Vec<Point>, ErrorStatus> {
 
         if self.start_point.is_equal_to(&other.start_point, tol) ||
