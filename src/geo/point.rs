@@ -1,5 +1,5 @@
 use std::ops;
-use super::Vector;
+use super::*;
 use crate::Tolerance;
 
 #[derive(Debug, Copy, Clone)]
@@ -30,6 +30,10 @@ impl Point {
         Point { x: (self.x + rhs.x) / 2.0,
                 y: (self.y + rhs.y) / 2.0,
                 z: (self.z + rhs.z) / 2.0 }
+    }
+
+    pub fn transform(&self, rhs: &Matrix3d) -> Self {
+        Self { x: 0.0, y: 0.0, z: 0.0 }
     }
 }
 
@@ -69,7 +73,7 @@ impl ops::Sub<Vector> for Point {
     type Output = Self;
 
     fn sub(self, rhs: Vector) -> Self {
-        Self { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z, }
+        Self { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z }
     }
 }
 
@@ -109,5 +113,32 @@ mod tests {
         let p = Point { x: 5.0, y: -5.0, z: 0.0 };
         let result = lhs - p;
         assert!(result.is_equal_to(&Vector { x: 5.0, y: 15.0, z: 10.0 }, &Tolerance::default()));
+    }
+
+    #[test]
+    fn point_transform() {
+        let  p = Point { x: 12.0, y: 9.5, z: 4.8 };
+
+        let mut mat = Matrix3d::new();
+        mat.set(0, 0, 0.9238);
+        mat.set(0, 1, 0.2514);
+        mat.set(0, 2, 0.1113);
+        mat.set(0, 3, 0.0);
+        mat.set(1, 0, 0.2156);
+        mat.set(1, 1, -0.1132);
+        mat.set(1, 2, -0.4286);
+        mat.set(1, 3, 0.0);
+        mat.set(2, 0, -0.5856);
+        mat.set(2, 1, 0.3126);
+        mat.set(2, 2, 0.8156);
+        mat.set(2, 3, 0.0);
+        mat.set(3, 0, 7.2);
+        mat.set(3, 1, 3.6);
+        mat.set(3, 2, 4.0);
+        mat.set(3, 3, 1.0);
+
+        let transformed = p.transform(&mat);
+        assert!(transformed.is_equal_to(&Point { x: 17.5229, y: 7.0419, z: 5.1788 },
+                                        &Tolerance::default()));
     }
 }

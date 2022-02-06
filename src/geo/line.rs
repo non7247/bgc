@@ -1,4 +1,4 @@
-use super::{ Point, Vector, Curve };
+use super::*;
 use crate::{ ErrorStatus, Tolerance };
 
 #[derive(Debug)]

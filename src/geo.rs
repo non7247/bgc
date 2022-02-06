@@ -1,5 +1,6 @@
 mod point;
 mod vector;
+mod matrix3d;
 mod line;
 mod arc;
 
@@ -7,6 +8,7 @@ use crate::{ ErrorStatus, Tolerance };
 
 pub use point::Point as Point;
 pub use vector::Vector as Vector;
+pub use matrix3d::Matrix3d as Matrix3d;
 
 pub use line::Line as Line;
 pub use arc::Arc as Arc;
