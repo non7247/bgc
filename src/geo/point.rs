@@ -11,7 +11,7 @@ pub struct Point {
 
 impl Point {
     pub fn origin() -> Self {
-        Point { x: 0.0, y: 0.0, z: 0.0 }
+        Self { x: 0.0, y: 0.0, z: 0.0 }
     }
 
     pub fn distance_to(&self, rhs: &Self) -> f64 {
@@ -27,13 +27,23 @@ impl Point {
     }
 
     pub fn calc_middle_point(&self, rhs: &Self) -> Self {
-        Point { x: (self.x + rhs.x) / 2.0,
-                y: (self.y + rhs.y) / 2.0,
-                z: (self.z + rhs.z) / 2.0 }
+        Self { x: (self.x + rhs.x) / 2.0,
+               y: (self.y + rhs.y) / 2.0,
+               z: (self.z + rhs.z) / 2.0 }
     }
 
+    /// Transforms this point to the coordinate system of the transformation matrix
+    ///
+    /// [p] * [M] = [p']
     pub fn transform(&self, rhs: &Matrix3d) -> Self {
-        Self { x: 0.0, y: 0.0, z: 0.0 }
+        let x = self.x * rhs.get(0, 0) + self.y * rhs.get(1, 0) + self.z * rhs.get(2, 0)
+              + rhs.get(3, 0);
+        let y = self.x * rhs.get(0, 1) + self.y * rhs.get(1, 1) + self.z * rhs.get(2, 1)
+              + rhs.get(3, 1);
+        let z = self.x * rhs.get(0, 2) + self.y * rhs.get(1, 2) + self.z * rhs.get(2, 2)
+              + rhs.get(3, 2);
+
+        Self { x, y, z }
     }
 }
 
