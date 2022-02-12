@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug)]
 pub struct Matrix3d {
-    /// [[columns]; rows]
+    /// [[row]; column]
     pub matrix: [[f64; 4]; 4],
 }
 
@@ -38,12 +38,12 @@ impl Matrix3d {
                         [0.0, 0.0, 0.0, 1.0]] }
     }
 
-    pub fn get(&self, col: usize, row: usize) -> f64 {
-        self.matrix[col][row]
+    pub fn get(&self, row: usize, col: usize) -> f64 {
+        self.matrix[row][col]
     }
 
-    pub fn set(&mut self, col: usize, row: usize, val: f64) {
-        self.matrix[col][row] = val;
+    pub fn set(&mut self, row: usize, col: usize, val: f64) {
+        self.matrix[row][col] = val;
     }
 
     pub fn multiply_by(&self, rhs: &Self) -> Self {
@@ -116,10 +116,7 @@ mod tests {
         let transformed = Point { x: 92443.211625,
                                   y: 5959.902281,
                                   z: 17693.140222 }.transform(&result);
-        println!("result is {:?}", result);
-        let mut tol = Tolerance::default();
-        tol.set_equal_point(0.005);
-        assert!(transformed.is_equal_to(&Point { x: 9385.8256, y: 3284.2835, z: 0.1451 },
+        assert!(transformed.is_equal_to(&Point { x: 9385.826917, y: 3284.281094, z: 0.143078 },
                                         &Tolerance::default()),
                 "transformed is {:?}", transformed);
     }
