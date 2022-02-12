@@ -118,6 +118,6 @@ mod tests {
                                   z: 17693.140222 }.transform(&result);
         assert!(transformed.is_equal_to(&Point { x: 9385.826917, y: 3284.281094, z: 0.143078 },
                                         &Tolerance::default()),
-                "transformed is {:?}", transformed);
+                                        "transformed is {:?}", transformed);
     }
 }

@@ -47,13 +47,58 @@ impl Arc {
         let ref_vec = x_axis.outer_product(&to_on_arc);
         let y_axis = ref_vec.outer_product(&x_axis).normal(tol);
 
-        // ToDo: calculates end angle
+        let local_end = end_point.transform(&Matrix3d::transform_to_local(&center,
+                                                                          &x_axis,
+                                                                          &y_axis,
+                                                                          &Tolerance::default()));
+        let end_angle = Arc::calc_angle_at_local_point(&local_end);
 
         Ok(Self { center_point: center,
                   x_axis: x_axis,
                   y_axis: y_axis,
                   radius: radius,
                   start_angle: 0.0,
-                  end_angle: 0.0 })
+                  end_angle: end_angle })
+    }
+
+    fn calc_angle_at_local_point(p: &Point) -> f64 {
+        let angle = p.y.atan2(p.x);
+        if angle < 0.0 {
+            angle + std::f64::consts::PI * 2.0
+        } else {
+            angle
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests  {
+    use super::*;
+
+    #[test]
+    fn arc_from() {
+        let arc = Arc::from(&Point { x: -25.1550, y: -11.1966, z: 0.0 },
+                            &Point { x: 41.0084, y: 0.8494, z: 0.0 },
+                            &Point { x: 4.7497, y: 7.9195, z: 0.0 },
+                            &Tolerance::default());
+
+        let arc = match arc {
+            Ok(arc) => arc,
+            Err(error) => {
+                panic!("error in arc_from: {:?}", error);
+            }
+        };
+
+        assert!(arc.center_point.is_equal_to(&Point { x: 14.2467, y: -39.8864, z: 0.0 },
+                                             &Tolerance::default()));
+        assert!(arc.x_axis.is_equal_to(&Vector { x: -0.808404, y: 0.588628, z: 0.0 },
+                                       &Tolerance::default()),
+                                       "x_axis is {:?}", arc.x_axis);
+        assert!(arc.y_axis.is_equal_to(&Vector { x: 0.588628, y: 0.808404, z: 0.0 },
+                                       &Tolerance::default()),
+                                       "y_axis is {:?}", arc.y_axis);
+        assert!((arc.radius - 48.7401).abs() < 0.0001);
+        assert!((arc.start_angle - 0.0).abs() < 0.0001);
+        assert!((arc.end_angle - 1.5227).abs() < 0.0001);
     }
 }
