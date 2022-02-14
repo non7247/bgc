@@ -99,6 +99,24 @@ impl Line {
     {
         other.intersect_with_line(&self, extends, tol)
     }
+
+    /// Calculates the point on this line a distance from the starting point.
+    pub fn get_point_at_dist(&self, distance: f64, extends: bool, tol: &Tolerance)
+            -> Result<Point, ErrorStatus> {
+        if distance.abs() < tol.equal_point() {
+            return Ok(self.start_point);
+        } else if (self.length() - distance).abs() < tol.equal_point() {
+            return Ok(self.end_point);
+        }
+
+        if !extends {
+            if distance < 0.0 || self.length() < distance {
+                return Err(ErrorStatus::InvalidInput);
+            }
+        }
+
+        Ok(self.start_point + self.direction() * distance)
+    }
 }
 
 impl Curve for Line {
@@ -429,5 +447,24 @@ mod tests {
                 assert_eq!(error, ErrorStatus::InvalidInput);
             },
         };
+    }
+
+    #[test]
+    fn line_get_point_at_dist() {
+        let l = Line { start_point: Point { x: 0.0, y: 0.0, z: 0.0 },
+                       end_point: Point { x: 3.0, y: 3.0, z: 0.0 } };
+
+        if let Ok(p) = l.get_point_at_dist(2_f64.sqrt(), false, &Tolerance::default()) {
+            assert!(p.is_equal_to(&Point { x: 1.0, y: 1.0, z: 0.0 },
+                                  &Tolerance::default()));
+        } else {
+            panic!("this test should not be error.");
+        }
+
+        if let Err(error) = l.get_point_at_dist(5.0, false, &Tolerance::default()) {
+            assert_eq!(error, ErrorStatus::InvalidInput);
+        } else {
+            panic!("this test should be error.");
+        }
     }
 }
