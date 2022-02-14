@@ -466,5 +466,11 @@ mod tests {
         } else {
             panic!("this test should be error.");
         }
+
+        if let Ok(p) = l.get_point_at_dist(18_f64.sqrt(), false, &Tolerance::default()) {
+            assert!(p.is_equal_to(&l.end_point, &Tolerance::default()));
+        } else {
+            panic!("this test should not be error.");
+        }
     }
 }
