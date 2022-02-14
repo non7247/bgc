@@ -61,6 +61,10 @@ impl Arc {
                   end_angle: end_angle })
     }
 
+    pub fn length(&self) -> f64 {
+        self.calc_length_at_param(self.end_angle)
+    }
+
     fn calc_angle_at_local_point(p: &Point) -> f64 {
         let angle = p.y.atan2(p.x);
         if angle < 0.0 {
@@ -68,6 +72,10 @@ impl Arc {
         } else {
             angle
         }
+    }
+
+    fn calc_length_at_param(&self, param: f64) -> f64 {
+        (param - self.start_angle) * self.radius
     }
 }
 

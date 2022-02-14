@@ -34,7 +34,7 @@ impl Point {
 
     /// Transforms this point to the coordinate system of the transformation matrix
     ///
-    /// [p] * [M] = [p']
+    /// \[p\] * \[M\] = \[p'\]
     pub fn transform(&self, rhs: &Matrix3d) -> Self {
         let x = self.x * rhs.get(0, 0) + self.y * rhs.get(1, 0) + self.z * rhs.get(2, 0)
               + rhs.get(3, 0);
