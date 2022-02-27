@@ -16,7 +16,7 @@ impl Line {
         (self.end_point - self.start_point).normal(&Tolerance::default())
     }
 
-    /// Calculates the closest point on this curve to input point.
+    /// Calculates the closest point on this line to input point.
     ///
     /// p0(x0, y0, z0) -> (x - x1)/l = (y - y1)/m = (z - z1)/n
     ///

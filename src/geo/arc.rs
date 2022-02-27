@@ -65,6 +65,45 @@ impl Arc {
         self.calc_length_at_param(self.end_angle)
     }
 
+    pub fn start_point(&self) -> Point {
+        self.calc_point_at_param(self.start_angle)
+    }
+
+    pub fn end_point(&self) -> Point {
+        self.calc_point_at_param(self.end_angle)
+    }
+
+    /// Calculates the closest point on this arc to input point.
+    pub fn get_closest_point(&self, point: &Point, extends: bool, tol: &Tolerance)
+            -> Result<Point, ErrorStatus> {
+        let mut local_point = point.transform(&Matrix3d::transform_to_local(&self.center_point,
+                                                                            &self.x_axis,
+                                                                            &self.y_axis,
+                                                                            tol));
+        local_point.z = 0.0;
+
+        let line = Line { start_point: Point::origin(),
+                          end_point: local_point };
+        let on_arc = line.get_point_at_dist(self.radius, true, tol)?;
+        let angle = Arc::calc_angle_at_local_point(&on_arc);
+
+        if !extends && !self.is_param_in_range(angle, tol) {
+            let to_start = self.start_point().distance_to(&local_point);
+            let to_end = self.end_point().distance_to(&local_point);
+
+            if to_start < to_end {
+                Ok(self.start_point())
+            } else {
+                Ok(self.end_point())
+            }
+        } else {
+            Ok(on_arc.transform(&Matrix3d::transform_to_world(&self.center_point,
+                                                              &self.x_axis,
+                                                              &self.y_axis,
+                                                              tol)))
+        }
+    }
+
     fn calc_angle_at_local_point(p: &Point) -> f64 {
         let angle = p.y.atan2(p.x);
         if angle < 0.0 {
@@ -74,8 +113,26 @@ impl Arc {
         }
     }
 
+    fn calc_point_at_param(&self, param: f64) -> Point {
+        self.center_point + (self.x_axis * param.cos() + self.y_axis * param.sin()) * self.radius
+    }
+
     fn calc_length_at_param(&self, param: f64) -> f64 {
         (param - self.start_angle) * self.radius
+    }
+
+    fn is_param_in_range(&self, param: f64, tol: &Tolerance) -> bool {
+        if (self.start_angle - param).abs() < tol.calculation() {
+            return true;
+        } else if (self.end_angle - param).abs() < tol.calculation() {
+            return true;
+        }
+
+        if param < self.start_angle || self.end_angle < param {
+            return false;
+        }
+
+        true
     }
 }
 
