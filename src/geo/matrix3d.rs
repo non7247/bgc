@@ -88,6 +88,12 @@ impl Matrix3d {
     }
 }
 
+impl Default for Matrix3d {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

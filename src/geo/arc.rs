@@ -24,8 +24,8 @@ impl Arc {
 
         let nrm_vec = to_start.outer_product(&to_end);
 
-        let mid1 = start_point.calc_middle_point(&on_arc);
-        let mid2 = end_point.calc_middle_point(&on_arc);
+        let mid1 = start_point.calc_middle_point(on_arc);
+        let mid2 = end_point.calc_middle_point(on_arc);
 
         let line1 = Line { start_point: mid1,
                            end_point: mid1 + to_start.outer_product(&nrm_vec) };
@@ -54,11 +54,11 @@ impl Arc {
         let end_angle = Arc::calc_angle_at_local_point(&local_end);
 
         Ok(Self { center_point: center,
-                  x_axis: x_axis,
-                  y_axis: y_axis,
-                  radius: radius,
+                  x_axis,
+                  y_axis,
+                  radius,
                   start_angle: 0.0,
-                  end_angle: end_angle })
+                  end_angle })
     }
 
     pub fn length(&self) -> f64 {
@@ -122,9 +122,8 @@ impl Arc {
     }
 
     fn is_param_in_range(&self, param: f64, tol: &Tolerance) -> bool {
-        if (self.start_angle - param).abs() < tol.calculation() {
-            return true;
-        } else if (self.end_angle - param).abs() < tol.calculation() {
+        if (self.start_angle - param).abs() < tol.calculation() ||
+                (self.end_angle - param).abs() < tol.calculation() {
             return true;
         }
 

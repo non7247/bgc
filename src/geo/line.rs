@@ -48,10 +48,8 @@ impl Line {
             
             if to_closest.is_equal_to(&(uvec * -1.0), tol) {
                 closest = self.start_point;
-            } else {
-                if self.length() < closest.distance_to(&self.start_point) {
-                    closest = self.end_point;
-                }
+            } else if self.length() < closest.distance_to(&self.start_point) {
+                closest = self.end_point;
             }
         }
 
@@ -64,9 +62,9 @@ impl Line {
             return true;
         }
 
-        let closest = self.get_closest_point(&p, extends, tol);
+        let closest = self.get_closest_point(p, extends, tol);
         
-        closest.is_equal_to(&p, tol)
+        closest.is_equal_to(p, tol)
     }
 
     /// Determines if input line is parallel to this line.
@@ -97,7 +95,7 @@ impl Line {
             -> Result<Vec<Point>, ErrorStatus>
         where T: Curve
     {
-        other.intersect_with_line(&self, extends, tol)
+        other.intersect_with_line(self, extends, tol)
     }
 
     /// Calculates the point on this line a distance from the starting point.
@@ -109,10 +107,8 @@ impl Line {
             return Ok(self.end_point);
         }
 
-        if !extends {
-            if distance < 0.0 || self.length() < distance {
-                return Err(ErrorStatus::InvalidInput);
-            }
+        if !extends && (distance < 0.0 || self.length() < distance) {
+            return Err(ErrorStatus::InvalidInput);
         }
 
         Ok(self.start_point + self.direction() * distance)
@@ -146,7 +142,7 @@ impl Curve for Line {
             return Ok(vec![self.end_point]);
         }
 
-        if self.is_parallel(&other, tol) {
+        if self.is_parallel(other, tol) {
             return Err(ErrorStatus::MustBeNonZero);
         }
 
