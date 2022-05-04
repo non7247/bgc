@@ -14,7 +14,8 @@ pub struct Arc {
 impl Arc {
     /// Makes an arc from three points.
     pub fn from(start_point: &Point, end_point: &Point, on_arc: &Point, tol: &Tolerance)
-            -> Result<Self, ErrorStatus> {
+        -> Result<Self, ErrorStatus>
+    {
         let to_start = (*start_point - *on_arc).normal(tol);
         let to_end = (*end_point - *on_arc).normal(tol);
 
@@ -75,7 +76,8 @@ impl Arc {
 
     /// Calculates the closest point on this arc to input point.
     pub fn get_closest_point(&self, point: &Point, extends: bool, tol: &Tolerance)
-            -> Result<Point, ErrorStatus> {
+        -> Result<Point, ErrorStatus>
+    {
         let mut local_point = point.transform(&Matrix3d::transform_to_local(&self.center_point,
                                                                             &self.x_axis,
                                                                             &self.y_axis,
@@ -101,6 +103,19 @@ impl Arc {
                                                               &self.x_axis,
                                                               &self.y_axis,
                                                               tol)))
+        }
+    }
+
+    /// Determines if input point lies on this arc.
+    pub fn is_on(&self, point: &Point, extends: bool, tol: &Tolerance) -> bool {
+        if self.start_point().is_equal_to(point, tol) || self.end_point().is_equal_to(point, tol) {
+            return true;
+        }
+
+        if let Ok(closest) = self.get_closest_point(point, extends, tol) {
+            closest.is_equal_to(point, tol)
+        } else {
+            false
         }
     }
 
@@ -164,5 +179,22 @@ mod tests  {
         assert!((arc.radius - 48.7401).abs() < 0.0001);
         assert!((arc.start_angle - 0.0).abs() < 0.0001);
         assert!((arc.end_angle - 1.5227).abs() < 0.0001);
+    }
+
+    #[test]
+    fn arc_is_on() {
+        let arc = Arc::from(&Point { x: 45584.895199, y: 7078.244811, z: 0.0 },
+                            &Point { x: 60917.404770, y: 4381.865751, z: 0.0 },
+                            &Point { x: 64213.475424, y: 3403.635799, z: 0.0 },
+                            &Tolerance::default());
+        let arc = match arc {
+            Ok(arc) => arc,
+            Err(error) => {
+                panic!("error in arc_is_on: {:?}", error);
+            }
+        };
+
+        assert!(arc.is_on(&Point { x: 50748.612270, y: 6499.672934, z: 0.0 },
+                          false, &Tolerance::default()));
     }
 }

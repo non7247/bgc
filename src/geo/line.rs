@@ -92,7 +92,7 @@ impl Line {
 
     /// Calculates intersection points of input curve and this line.
     pub fn intersect_with<T>(&self, other: &T, extends: bool, tol: &Tolerance)
-            -> Result<Vec<Point>, ErrorStatus>
+        -> Result<Vec<Point>, ErrorStatus>
         where T: Curve
     {
         other.intersect_with_line(self, extends, tol)
@@ -100,7 +100,8 @@ impl Line {
 
     /// Calculates the point on this line a distance from the starting point.
     pub fn get_point_at_dist(&self, distance: f64, extends: bool, tol: &Tolerance)
-            -> Result<Point, ErrorStatus> {
+        -> Result<Point, ErrorStatus>
+    {
         if distance.abs() < tol.equal_point() {
             return Ok(self.start_point);
         } else if (self.length() - distance).abs() < tol.equal_point() {
@@ -131,7 +132,8 @@ impl Curve for Line {
     /// S2 = -(l2\*X + m2\*Y + n2\*Z) <br>
     /// X = x2 - x1, Y = y2 - y1, Z = z2 - z1
     fn intersect_with_line(&self, other: &Self, extends: bool, tol: &Tolerance)
-            -> Result<Vec<Point>, ErrorStatus> {
+        -> Result<Vec<Point>, ErrorStatus>
+    {
 
         if self.start_point.is_equal_to(&other.start_point, tol) ||
                 self.start_point.is_equal_to(&other.end_point, tol) {
