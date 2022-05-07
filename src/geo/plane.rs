@@ -11,7 +11,9 @@ pub struct Plane {
 }
 
 impl Plane {
-    pub fn from(point: &Point, normal_vec: &Vector) -> Self {
+    pub fn from(point: &Point, vec: &Vector, tol: &Tolerance) -> Self {
+        let normal_vec = vec.normal(tol);
+
         Self { param_a: normal_vec.x,
                param_b: normal_vec.y,
                param_c: normal_vec.z,
