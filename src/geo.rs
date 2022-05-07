@@ -3,6 +3,7 @@ mod vector;
 mod matrix3d;
 mod line;
 mod arc;
+mod plane;
 
 use crate::{ ErrorStatus, Tolerance };
 
@@ -12,6 +13,8 @@ pub use matrix3d::Matrix3d as Matrix3d;
 
 pub use line::Line as Line;
 pub use arc::Arc as Arc;
+
+pub use plane::Plane as Plane;
 
 pub trait Curve {
     fn intersect_with_line(&self, line: &Line, extends: bool, tol: &Tolerance)
