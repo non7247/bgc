@@ -122,9 +122,11 @@ impl Line {
         -> Result<Point, ErrorStatus>
     {
         if plane.is_on(&self.start_point, tol) {
+            dbg!("start point is on plane.");
             return Ok(self.start_point);
         }
         if plane.is_on(&self.end_point, tol) {
+            dbg!("end point is on plane.");
             return Ok(self.end_point);
         }
 
@@ -143,6 +145,7 @@ impl Line {
         if u.abs() < tol.calculation() {
             u = 0.0;
         }
+        dbg!(u);
 
         let ipoint = self.start_point + (self.end_point - self.start_point) * u;
 
@@ -518,7 +521,8 @@ mod tests {
 
         if let Ok(ip) = line.intersect_with_plane(&plane, false, &Tolerance::default()) {
             assert!(ip.is_equal_to(&Point { x: 4.0, y: 2.0, z: 0.0 },
-                                   &Tolerance::default()));
+                                   &Tolerance::default()),
+                    "intersection point is {:?}", ip);
         } else {
             panic!("this test should not be error.");
         }

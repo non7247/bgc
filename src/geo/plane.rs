@@ -32,7 +32,7 @@ impl Plane {
         let s = (self.param_a.powi(2) + self.param_b.powi(2) + self.param_c.powi(2)).sqrt();
 
         (point.x * self.param_a + point.y * self.param_b + point.z * self.param_c
-         + self.param_d) / s
+         + self.param_d).abs() / s
     }
 
     /// Calculates the closest point on this plane from a point.
