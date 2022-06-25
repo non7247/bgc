@@ -114,6 +114,44 @@ impl Line {
 
         Ok(self.start_point + self.direction() * distance)
     }
+
+    /// Calculates the intersection point the line makes with a plane.
+    ///
+    /// plane   Ax + By + Cz + D = 0
+    pub fn intersect_with_plane(&self, plane: &Plane, extends: bool, tol: &Tolerance)
+        -> Result<Point, ErrorStatus>
+    {
+        if plane.is_on(&self.start_point, tol) {
+            return Ok(self.start_point);
+        }
+        if plane.is_on(&self.end_point, tol) {
+            return Ok(self.end_point);
+        }
+
+        let v = self.start_point - self.end_point;
+
+        let denominator = plane.param_a * v.x + plane.param_b * v.y + plane.param_c * v.z;
+        if denominator.abs() < tol.calculation() {
+            return Err(ErrorStatus::MustBeNonZero);
+        }
+
+        let numerator = plane.param_a * self.start_point.x
+                      + plane.param_b * self.start_point.y
+                      + plane.param_c * self.start_point.z
+                      + plane.param_d;
+        let mut u = numerator / denominator;
+        if u.abs() < tol.calculation() {
+            u = 0.0;
+        }
+
+        let ipoint = self.start_point + (self.end_point - self.start_point) * u;
+
+        if !self.is_on(&ipoint, extends, tol) {
+            return Err(ErrorStatus::InvalidInput);
+        }
+
+        Ok(ipoint)
+    }
 }
 
 impl Curve for Line {
@@ -467,6 +505,20 @@ mod tests {
 
         if let Ok(p) = l.get_point_at_dist(18_f64.sqrt(), false, &Tolerance::default()) {
             assert!(p.is_equal_to(&l.end_point, &Tolerance::default()));
+        } else {
+            panic!("this test should not be error.");
+        }
+    }
+
+    #[test]
+    fn line_intersect_with_xy_plane() {
+        let plane = Plane { param_a: 1.0, param_b: 0.0, param_c: 0.0, param_d: -4.0 };
+        let line = Line { start_point: Point { x: 2.0, y: 2.0, z: 0.0 },
+                          end_point: Point { x: 6.0, y: 2.0, z: 0.0 } };
+
+        if let Ok(ip) = line.intersect_with_plane(&plane, false, &Tolerance::default()) {
+            assert!(ip.is_equal_to(&Point { x: 4.0, y: 2.0, z: 0.0 },
+                                   &Tolerance::default()));
         } else {
             panic!("this test should not be error.");
         }
