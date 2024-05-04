@@ -1,3 +1,6 @@
+use std::error;
+use std::fmt;
+
 pub mod geo;
 
 pub const DEFAULT_TOLERANCE_CALCULATION: f64 = 1.0e-8;
@@ -5,9 +8,8 @@ pub const DEFAULT_TOLERANCE_CONVERGENCE: f64 = 1.0e-6;
 pub const DEFAULT_TOLERANCE_POINT: f64 = 1.0e-4;
 pub const DEFAULT_TOLERANCE_VECTOR: f64 = 1.0e-6;
 
-#[derive(PartialOrd, PartialEq, Debug)]
-pub enum ErrorStatus {
-    Ok,
+#[derive(Debug, PartialEq)]
+pub enum BgcError {
     InvalidInput,
     OutOfRange,
     MustBePositive,
@@ -16,6 +18,23 @@ pub enum ErrorStatus {
     Deivergence,
     Empty,
     NotInplemented,
+}
+
+impl error::Error for BgcError {}
+
+impl fmt::Display for BgcError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            BgcError::InvalidInput => write!(f, "invalid input"),
+            BgcError::OutOfRange => write!(f, "out of range"),
+            BgcError::MustBePositive => write!(f, "must be positive"),
+            BgcError::MustBeNoNegative => write!(f, "must be non negative"),
+            BgcError::MustBeNonZero => write!(f, "must be non zero"),
+            BgcError::Deivergence => write!(f, "deivergence"),
+            BgcError::Empty => write!(f, "empty"),
+            BgcError::NotInplemented => write!(f, "not inplemented"),
+        }
+    }
 }
 
 mod math {

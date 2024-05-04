@@ -1,5 +1,5 @@
 use super::*;
-use crate::{ ErrorStatus, Tolerance };
+use crate::{ BgcError, Tolerance };
 
 #[derive(Debug)]
 pub struct Arc {
@@ -14,13 +14,13 @@ pub struct Arc {
 impl Arc {
     /// Makes an arc from three points.
     pub fn from(start_point: &Point, end_point: &Point, on_arc: &Point, tol: &Tolerance)
-        -> Result<Self, ErrorStatus>
+        -> Result<Self, BgcError>
     {
         let to_start = (*start_point - *on_arc).normal(tol);
         let to_end = (*end_point - *on_arc).normal(tol);
 
         if to_start.is_equal_to(&(to_end * -1.0), tol) {
-            return Err(ErrorStatus::InvalidInput);
+            return Err(BgcError::InvalidInput);
         }
 
         let nrm_vec = to_start.outer_product(&to_end);
@@ -37,7 +37,7 @@ impl Arc {
         let center = match ip {
             Ok(ip) => ip[0],
             Err(_) => {
-                return Err(ErrorStatus::InvalidInput);
+                return Err(BgcError::InvalidInput);
             },
         };
 
@@ -76,7 +76,7 @@ impl Arc {
 
     /// Calculates the closest point on this arc to input point.
     pub fn get_closest_point(&self, point: &Point, extends: bool, tol: &Tolerance)
-        -> Result<Point, ErrorStatus>
+        -> Result<Point, BgcError>
     {
         let mut local_point = point.transform(&Matrix3d::transform_to_local(&self.center_point,
                                                                             &self.x_axis,
@@ -147,6 +147,14 @@ impl Arc {
         }
 
         true
+    }
+}
+
+impl Curve for Arc {
+    fn intersect_with_line(&self, other: &Line, extends: bool, tol: &Tolerance)
+        -> Result<Vec<Point>, BgcError>
+    {
+        Ok(vec![Point{ x: 0.0, y: 0.0, z: 0.0 }])
     }
 }
 

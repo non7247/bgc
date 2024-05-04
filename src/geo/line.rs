@@ -1,5 +1,5 @@
 use super::*;
-use crate::{ ErrorStatus, Tolerance };
+use crate::{ BgcError, Tolerance };
 
 #[derive(Debug)]
 pub struct Line {
@@ -92,7 +92,7 @@ impl Line {
 
     /// Calculates intersection points of input curve and this line.
     pub fn intersect_with<T>(&self, other: &T, extends: bool, tol: &Tolerance)
-        -> Result<Vec<Point>, ErrorStatus>
+        -> Result<Vec<Point>, BgcError>
         where T: Curve
     {
         other.intersect_with_line(self, extends, tol)
@@ -100,7 +100,7 @@ impl Line {
 
     /// Calculates the point on this line a distance from the starting point.
     pub fn get_point_at_dist(&self, distance: f64, extends: bool, tol: &Tolerance)
-        -> Result<Point, ErrorStatus>
+        -> Result<Point, BgcError>
     {
         if distance.abs() < tol.equal_point() {
             return Ok(self.start_point);
@@ -109,7 +109,7 @@ impl Line {
         }
 
         if !extends && (distance < 0.0 || self.length() < distance) {
-            return Err(ErrorStatus::InvalidInput);
+            return Err(BgcError::InvalidInput);
         }
 
         Ok(self.start_point + self.direction() * distance)
@@ -119,7 +119,7 @@ impl Line {
     ///
     /// plane   Ax + By + Cz + D = 0
     pub fn intersect_with_plane(&self, plane: &Plane, extends: bool, tol: &Tolerance)
-        -> Result<Point, ErrorStatus>
+        -> Result<Point, BgcError>
     {
         if plane.is_on(&self.start_point, tol) {
             dbg!("start point is on plane.");
@@ -134,7 +134,7 @@ impl Line {
 
         let denominator = plane.param_a * v.x + plane.param_b * v.y + plane.param_c * v.z;
         if denominator.abs() < tol.calculation() {
-            return Err(ErrorStatus::MustBeNonZero);
+            return Err(BgcError::MustBeNonZero);
         }
 
         let numerator = plane.param_a * self.start_point.x
@@ -150,7 +150,7 @@ impl Line {
         let ipoint = self.start_point + (self.end_point - self.start_point) * u;
 
         if !self.is_on(&ipoint, extends, tol) {
-            return Err(ErrorStatus::InvalidInput);
+            return Err(BgcError::InvalidInput);
         }
 
         Ok(ipoint)
@@ -173,7 +173,7 @@ impl Curve for Line {
     /// S2 = -(l2\*X + m2\*Y + n2\*Z) <br>
     /// X = x2 - x1, Y = y2 - y1, Z = z2 - z1
     fn intersect_with_line(&self, other: &Self, extends: bool, tol: &Tolerance)
-        -> Result<Vec<Point>, ErrorStatus>
+        -> Result<Vec<Point>, BgcError>
     {
 
         if self.start_point.is_equal_to(&other.start_point, tol) ||
@@ -186,7 +186,7 @@ impl Curve for Line {
         }
 
         if self.is_parallel(other, tol) {
-            return Err(ErrorStatus::MustBeNonZero);
+            return Err(BgcError::MustBeNonZero);
         }
 
         let dir1 = self.direction();
@@ -206,14 +206,14 @@ impl Curve for Line {
         let int_p2 = other.start_point + dir2 * l2;
 
         if !self.is_on(&int_p1, extends, tol) || !other.is_on(&int_p2, extends, tol) {
-            return Err(ErrorStatus::InvalidInput);
+            return Err(BgcError::InvalidInput);
         }
 
         if int_p1.is_equal_to(&int_p2, tol) {
             return Ok(vec![int_p1]);
         }
 
-        Err(ErrorStatus::InvalidInput)
+        Err(BgcError::InvalidInput)
     }
 }
 
@@ -304,7 +304,7 @@ mod tests {
                 panic!("this test should be error.");
             },
             Err(error) => {
-                assert_eq!(error, ErrorStatus::InvalidInput);
+                assert_eq!(error, BgcError::InvalidInput);
             },
         };
     }
@@ -443,7 +443,7 @@ mod tests {
                 panic!("thie test should be error.");
             },
             Err(error) => {
-                assert_eq!(error, ErrorStatus::InvalidInput);
+                assert_eq!(error, BgcError::InvalidInput);
             },
         };
 
@@ -469,7 +469,7 @@ mod tests {
                 panic!("thie test should be error.");
             },
             Err(error) => {
-                assert_eq!(error, ErrorStatus::MustBeNonZero);
+                assert_eq!(error, BgcError::MustBeNonZero);
             },
         };
 
@@ -483,7 +483,7 @@ mod tests {
                 panic!("thie test should be error.");
             },
             Err(error) => {
-                assert_eq!(error, ErrorStatus::InvalidInput);
+                assert_eq!(error, BgcError::InvalidInput);
             },
         };
     }
@@ -501,7 +501,7 @@ mod tests {
         }
 
         if let Err(error) = l.get_point_at_dist(5.0, false, &Tolerance::default()) {
-            assert_eq!(error, ErrorStatus::InvalidInput);
+            assert_eq!(error, BgcError::InvalidInput);
         } else {
             panic!("this test should be error.");
         }
