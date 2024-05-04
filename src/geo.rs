@@ -17,6 +17,10 @@ pub use arc::Arc as Arc;
 pub use plane::Plane as Plane;
 
 pub trait Curve {
-    fn intersect_with_line(&self, line: &Line, extends: bool, tol: &Tolerance)
-            -> Result<Vec<Point>, BgcError>;
+    fn intersect_with_line(
+        &self,
+        line: &Line,
+        extends: bool,
+        tol: &Tolerance
+    ) -> Result<Vec<Point>, BgcError>;
 }

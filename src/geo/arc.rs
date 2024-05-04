@@ -13,8 +13,12 @@ pub struct Arc {
 
 impl Arc {
     /// Makes an arc from three points.
-    pub fn from(start_point: &Point, end_point: &Point, on_arc: &Point, tol: &Tolerance)
-        -> Result<Self, BgcError>
+    pub fn from_three_points(
+        start_point: &Point,
+        end_point: &Point,
+        on_arc: &Point,
+        tol: &Tolerance
+    ) -> Result<Self, BgcError>
     {
         let to_start = (*start_point - *on_arc).normal(tol);
         let to_end = (*end_point - *on_arc).normal(tol);
@@ -28,10 +32,8 @@ impl Arc {
         let mid1 = start_point.calc_middle_point(on_arc);
         let mid2 = end_point.calc_middle_point(on_arc);
 
-        let line1 = Line { start_point: mid1,
-                           end_point: mid1 + to_start.outer_product(&nrm_vec) };
-        let line2 = Line { start_point: mid2,
-                           end_point: mid2 + to_end.outer_product(&nrm_vec) };
+        let line1 = Line::new(mid1, mid1 + to_start.outer_product(&nrm_vec));
+        let line2 = Line::new(mid2, mid2 + to_end.outer_product(&nrm_vec));
 
         let ip = line1.intersect_with_line(&line2, true, tol);
         let center = match ip {
@@ -48,10 +50,14 @@ impl Arc {
         let ref_vec = x_axis.outer_product(&to_on_arc);
         let y_axis = ref_vec.outer_product(&x_axis).normal(tol);
 
-        let local_end = end_point.transform(&Matrix3d::transform_to_local(&center,
-                                                                          &x_axis,
-                                                                          &y_axis,
-                                                                          &Tolerance::default()));
+        let local_end = end_point.transform(
+            &Matrix3d::transform_to_local(
+                &center,
+                &x_axis,
+                &y_axis,
+                &Tolerance::default()
+            )
+        );
         let end_angle = Arc::calc_angle_at_local_point(&local_end);
 
         Ok(Self { center_point: center,
@@ -75,18 +81,25 @@ impl Arc {
     }
 
     /// Calculates the closest point on this arc to input point.
-    pub fn get_closest_point(&self, point: &Point, extends: bool, tol: &Tolerance)
-        -> Result<Point, BgcError>
+    pub fn closest_point(
+        &self,
+        point: &Point,
+        extends: bool,
+        tol: &Tolerance
+    ) -> Result<Point, BgcError>
     {
-        let mut local_point = point.transform(&Matrix3d::transform_to_local(&self.center_point,
-                                                                            &self.x_axis,
-                                                                            &self.y_axis,
-                                                                            tol));
+        let mut local_point = point.transform(
+            &Matrix3d::transform_to_local(
+                &self.center_point,
+                &self.x_axis,
+                &self.y_axis,
+                tol
+            )
+        );
         local_point.z = 0.0;
 
-        let line = Line { start_point: Point::origin(),
-                          end_point: local_point };
-        let on_arc = line.get_point_at_dist(self.radius, true, tol)?;
+        let line = Line::new(Point::origin(), local_point);
+        let on_arc = line.point_at_dist(self.radius, true, tol)?;
         let angle = Arc::calc_angle_at_local_point(&on_arc);
 
         if !extends && !self.is_param_in_range(angle, tol) {
@@ -99,10 +112,14 @@ impl Arc {
                 Ok(self.end_point())
             }
         } else {
-            Ok(on_arc.transform(&Matrix3d::transform_to_world(&self.center_point,
-                                                              &self.x_axis,
-                                                              &self.y_axis,
-                                                              tol)))
+            Ok(on_arc.transform(
+                &Matrix3d::transform_to_world(
+                    &self.center_point,
+                    &self.x_axis,
+                    &self.y_axis,
+                    tol)
+                )
+            )
         }
     }
 
@@ -112,7 +129,7 @@ impl Arc {
             return true;
         }
 
-        if let Ok(closest) = self.get_closest_point(point, extends, tol) {
+        if let Ok(closest) = self.closest_point(point, extends, tol) {
             closest.is_equal_to(point, tol)
         } else {
             false
@@ -151,10 +168,14 @@ impl Arc {
 }
 
 impl Curve for Arc {
-    fn intersect_with_line(&self, other: &Line, extends: bool, tol: &Tolerance)
-        -> Result<Vec<Point>, BgcError>
+    fn intersect_with_line(
+        &self,
+        other: &Line,
+        extends: bool,
+        tol: &Tolerance
+    ) -> Result<Vec<Point>, BgcError>
     {
-        Ok(vec![Point{ x: 0.0, y: 0.0, z: 0.0 }])
+        Ok(vec![Point::new(0.0, 0.0, 0.0)])
     }
 }
 
@@ -164,10 +185,12 @@ mod tests  {
 
     #[test]
     fn arc_from() {
-        let arc = Arc::from(&Point { x: -25.1550, y: -11.1966, z: 0.0 },
-                            &Point { x: 41.0084, y: 0.8494, z: 0.0 },
-                            &Point { x: 4.7497, y: 7.9195, z: 0.0 },
-                            &Tolerance::default());
+        let arc = Arc::from_three_points(
+            &Point::new(-25.1550, -11.1966, 0.0),
+            &Point::new(41.0084, 0.8494, 0.0),
+            &Point::new(4.7497, 7.9195, 0.0),
+            &Tolerance::default()
+        );
 
         let arc = match arc {
             Ok(arc) => arc,
@@ -176,14 +199,18 @@ mod tests  {
             }
         };
 
-        assert!(arc.center_point.is_equal_to(&Point { x: 14.2467, y: -39.8864, z: 0.0 },
-                                             &Tolerance::default()));
-        assert!(arc.x_axis.is_equal_to(&Vector { x: -0.808404, y: 0.588628, z: 0.0 },
-                                       &Tolerance::default()),
-                                       "x_axis is {:?}", arc.x_axis);
-        assert!(arc.y_axis.is_equal_to(&Vector { x: 0.588628, y: 0.808404, z: 0.0 },
-                                       &Tolerance::default()),
-                                       "y_axis is {:?}", arc.y_axis);
+        assert!(arc.center_point.is_equal_to(
+            &Point::new(14.2467, -39.8864, 0.0),
+            &Tolerance::default()
+        ));
+        assert!(arc.x_axis.is_equal_to(
+            &Vector::new(-0.808404, 0.588628, 0.0),
+            &Tolerance::default()
+        ), "x_axis is {:?}", arc.x_axis);
+        assert!(arc.y_axis.is_equal_to(
+            &Vector::new(0.588628, 0.808404, 0.0),
+            &Tolerance::default()
+        ), "y_axis is {:?}", arc.y_axis);
         assert!((arc.radius - 48.7401).abs() < 0.0001);
         assert!((arc.start_angle - 0.0).abs() < 0.0001);
         assert!((arc.end_angle - 1.5227).abs() < 0.0001);
@@ -191,10 +218,12 @@ mod tests  {
 
     #[test]
     fn arc_is_on() {
-        let arc = Arc::from(&Point { x: 45584.895199, y: 7078.244811, z: 0.0 },
-                            &Point { x: 60917.404770, y: 4381.865751, z: 0.0 },
-                            &Point { x: 64213.475424, y: 3403.635799, z: 0.0 },
-                            &Tolerance::default());
+        let arc = Arc::from_three_points(
+            &Point::new(45584.895199, 7078.244811, 0.0),
+            &Point::new(60917.404770, 4381.865751, 0.0),
+            &Point::new(64213.475424, 3403.635799, 0.0),
+            &Tolerance::default()
+        );
         let arc = match arc {
             Ok(arc) => arc,
             Err(error) => {
@@ -202,7 +231,10 @@ mod tests  {
             }
         };
 
-        assert!(arc.is_on(&Point { x: 50748.612270, y: 6499.672934, z: 0.0 },
-                          false, &Tolerance::default()));
+        assert!(arc.is_on(
+            &Point::new(50748.612270, 6499.672934, 0.0),
+            false,
+            &Tolerance::default()
+        ));
     }
 }

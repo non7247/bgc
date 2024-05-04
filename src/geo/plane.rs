@@ -14,12 +14,12 @@ impl Plane {
     pub fn from(point: &Point, vec: &Vector, tol: &Tolerance) -> Self {
         let normal_vec = vec.normal(tol);
 
-        Self { param_a: normal_vec.x,
-               param_b: normal_vec.y,
-               param_c: normal_vec.z,
-               param_d: -(normal_vec.x * point.x
-                          + normal_vec.y * point.y
-                          + normal_vec.z * point.z)}
+        Self {
+            param_a: normal_vec.x,
+            param_b: normal_vec.y,
+            param_c: normal_vec.z,
+            param_d: -(normal_vec.x * point.x + normal_vec.y * point.y + normal_vec.z * point.z),
+        }
     }
 
     /// Calculates the distance from a point to this plane.
@@ -31,8 +31,8 @@ impl Plane {
     pub fn distance_to(&self, point: &Point) -> f64 {
         let s = (self.param_a.powi(2) + self.param_b.powi(2) + self.param_c.powi(2)).sqrt();
 
-        (point.x * self.param_a + point.y * self.param_b + point.z * self.param_c
-         + self.param_d).abs() / s
+        (point.x * self.param_a + point.y * self.param_b + point.z * self.param_c + self.param_d)
+            .abs() / s
     }
 
     /// Calculates the closest point on this plane from a point.
@@ -43,14 +43,18 @@ impl Plane {
     /// ya = y0 + Bt
     /// za = z0 + Ct
     /// t = -(Ax0 + By0 + Cz0 + D) / (A^2 + B^2 + C^2)
-    pub fn get_closest_point(&self, point: & Point) -> Point {
-        let t = -(self.param_a * point.x + self.param_b * point.y + self.param_c * point.z
-                  + self.param_d)
-                / (self.param_a.powi(2) + self.param_b.powi(2) + self.param_c.powi(2));
+    pub fn closest_point(&self, point: & Point) -> Point {
+        let t = -(self.param_a * point.x
+            + self.param_b * point.y
+            + self.param_c * point.z
+            + self.param_d)
+            / (self.param_a.powi(2) + self.param_b.powi(2) + self.param_c.powi(2));
 
-        Point { x: point.x + self.param_a * t,
-                y: point.y + self.param_b * t,
-                z: point.z + self.param_c * t }
+        Point::new(
+            point.x + self.param_a * t,
+            point.y + self.param_b * t,
+            point.z + self.param_c * t
+        )
     }
 
     pub fn is_on(&self, point: &Point, tol: &Tolerance) -> bool {

@@ -9,16 +9,20 @@ pub struct Vector {
 }
 
 impl Vector {
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
+        Self { x, y, z }
+    }
+
     pub fn x_axis() -> Self {
-        Self { x: 1.0, y: 0.0, z: 0.0 }
+        Self::new(1.0, 0.0, 0.0)
     }
 
     pub fn y_axis() -> Self {
-        Self { x: 0.0, y: 1.0, z: 0.0 }
+        Self::new(0.0, 1.0, 0.0)
     }
 
     pub fn z_axis() -> Self {
-        Self { x: 0.0, y: 0.0, z: 1.0 }
+        Self::new(0.0, 0.0, 1.0)
     }
 
     pub fn length(&self) -> f64 {
@@ -26,7 +30,11 @@ impl Vector {
     }
 
     pub fn is_equal_to(&self, rhs: &Self, tol: &Tolerance) -> bool {
-        let diff = Self { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z };
+        let diff = Self::new(
+            self.x - rhs.x,
+            self.y - rhs.y,
+            self.z - rhs.z
+        );
         diff.length() < tol.equal_vector()
     }
 
@@ -34,9 +42,9 @@ impl Vector {
         let l = self.length();
 
         if l < tol.equal_vector() {
-            Self { x: self.x, y: self.y, z: self.z }
+            Self::new(self.x, self.y, self.z)
         } else {
-            Self { x: self.x / l, y: self.y / l, z: self.z / l }
+            Self::new(self.x / l, self.y / l, self.z / l)
         }
     }
 
@@ -45,9 +53,11 @@ impl Vector {
     }
 
     pub fn outer_product(&self, rhs: &Self) -> Self {
-        Self { x: self.y * rhs.z - self.z * rhs.y,
-               y: self.z * rhs.x - self.x * rhs.z,
-               z: self.x * rhs.y - self.y * rhs.x }
+        Self::new(
+            self.y * rhs.z - self.z * rhs.y,
+            self.z * rhs.x - self.x * rhs.z,
+            self.x * rhs.y - self.y * rhs.x
+        )
     }
 }
 
@@ -79,7 +89,11 @@ impl ops::Add for Vector {
     type Output = Self;
 
     fn add(self, rhs: Vector) -> Self {
-        Self { x: self.x + rhs.x, y: self.y + rhs.y, z: self.z + rhs.z }
+        Self::new(
+            self.x + rhs.x,
+            self.y + rhs.y,
+            self.z + rhs.z
+        )
     }
 }
 
@@ -87,15 +101,19 @@ impl ops::Sub for Vector {
     type Output = Self;
 
     fn sub(self, rhs: Vector) -> Self {
-        Self { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z }
+        Self::new(
+            self.x - rhs.x,
+            self.y - rhs.y,
+            self.z - rhs.z
+        )
     }
 }
 
 impl ops::Mul<f64> for Vector {
     type Output = Self;
 
-    fn mul(self, rhs: f64) -> Self {
-        Self { x: self.x * rhs, y: self.y * rhs, z: self.z * rhs }
+    fn mul(self, m: f64) -> Self {
+        Self::new(self.x * m, self.y * m, self.z * m)
     }
 }
 
@@ -105,33 +123,33 @@ mod tests {
 
     #[test]
     fn vector_is_equal_to() {
-        let lhs = Vector { x: 1.0, y: 2.0, z: 3.0 };
-        let rhs = Vector { x: 1.0, y: 2.0, z: 3.0 };
+        let lhs = Vector::new(1.0, 2.0, 3.0);
+        let rhs = Vector::new(1.0, 2.0, 3.0);
 
         assert!(lhs.is_equal_to(&rhs, &Tolerance::default()));
 
-        let rhs = Vector { x: 1.1, y: 2.1, z: 3.1 };
+        let rhs = Vector::new(1.1, 2.1, 3.1);
 
         assert!(!lhs.is_equal_to(&rhs, &Tolerance::default()));
     }
 
     #[test]
     fn vector_operators() {
-        let mut lhs = Vector { x: 10.0, y: 10.0, z: 10.0 };
-        let rhs = Vector { x: 5.0, y: -5.0, z: 0.0 };
+        let mut lhs = Vector::new(10.0, 10.0, 10.0);
+        let rhs = Vector::new(5.0, -5.0, 0.0);
 
         lhs += rhs;
 
-        assert!(lhs.is_equal_to(&Vector { x: 15.0, y: 5.0, z: 10.0 }, &Tolerance::default()));
+        assert!(lhs.is_equal_to(&Vector::new(15.0, 5.0, 10.0), &Tolerance::default()));
 
         lhs -= rhs;
 
-        assert!(lhs.is_equal_to(&Vector { x: 10.0, y: 10.0, z: 10.0 }, &Tolerance::default()));
+        assert!(lhs.is_equal_to(&Vector::new(10.0, 10.0, 10.0), &Tolerance::default()));
 
         let result = lhs + rhs;
-        assert!(result.is_equal_to(&Vector { x: 15.0, y: 5.0, z: 10.0 }, &Tolerance::default()));
+        assert!(result.is_equal_to(&Vector::new(15.0, 5.0, 10.0), &Tolerance::default()));
 
         let result = lhs - rhs;
-        assert!(result.is_equal_to(&Vector { x: 5.0, y: 15.0, z: 10.0 }, &Tolerance::default()));
+        assert!(result.is_equal_to(&Vector::new(5.0, 15.0, 10.0), &Tolerance::default()));
     }
 }
