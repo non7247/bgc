@@ -1,6 +1,3 @@
-use std::error;
-use std::fmt;
-
 pub mod geo;
 
 pub const DEFAULT_TOLERANCE_CALCULATION: f64 = 1.0e-8;
@@ -17,13 +14,13 @@ pub enum BgcError {
     MustBeNonZero,
     Deivergence,
     Empty,
-    NotInplemented,
+    NotImplemented,
 }
 
-impl error::Error for BgcError {}
+impl std::error::Error for BgcError {}
 
-impl fmt::Display for BgcError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for BgcError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             BgcError::InvalidInput => write!(f, "invalid input"),
             BgcError::OutOfRange => write!(f, "out of range"),
@@ -32,7 +29,7 @@ impl fmt::Display for BgcError {
             BgcError::MustBeNonZero => write!(f, "must be non zero"),
             BgcError::Deivergence => write!(f, "deivergence"),
             BgcError::Empty => write!(f, "empty"),
-            BgcError::NotInplemented => write!(f, "not inplemented"),
+            BgcError::NotImplemented => write!(f, "not implemented"),
         }
     }
 }
