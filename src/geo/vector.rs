@@ -1,4 +1,5 @@
 use std::ops;
+use super::*;
 use crate::Tolerance;
 
 #[derive(Debug, Copy, Clone)]
@@ -117,6 +118,12 @@ impl ops::Mul<f64> for Vector {
     }
 }
 
+impl From<Point> for Vector {
+    fn from(p: Point) -> Self {
+        Self::new(p.x, p.y, p.z)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,5 +158,15 @@ mod tests {
 
         let result = lhs - rhs;
         assert!(result.is_equal_to(&Vector::new(5.0, 15.0, 10.0), &Tolerance::default()));
+    }
+
+    #[test]
+    fn vector_from_trait() {
+        let mut lhs = Point::new(1.0, 2.0, 3.0);
+        let rhs = Point::new(1.0, 2.0, 3.0);
+
+        lhs += rhs.into();
+
+        assert!(lhs.is_equal_to(&Point::new(2.0, 4.0, 6.0), &Tolerance::default()));
     }
 }
