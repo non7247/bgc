@@ -20,8 +20,8 @@ impl Arc {
         tol: &Tolerance
     ) -> Result<Self, BgcError>
     {
-        let to_start = (*start_point - *on_arc).normal(tol);
-        let to_end = (*end_point - *on_arc).normal(tol);
+        let to_start = (start_point - on_arc).normal(tol);
+        let to_end = (end_point - on_arc).normal(tol);
 
         if to_start.is_equal_to(&(to_end * -1.0), tol) {
             return Err(BgcError::InvalidInput);
@@ -44,9 +44,9 @@ impl Arc {
         };
 
         let radius = center.distance_to(on_arc);
-        let x_axis = (*start_point - center).normal(tol);
+        let x_axis = (start_point - center).normal(tol);
 
-        let to_on_arc = (*on_arc - center).normal(tol);
+        let to_on_arc = (on_arc - center).normal(tol);
         let ref_vec = x_axis.outer_product(&to_on_arc);
         let y_axis = ref_vec.outer_product(&x_axis).normal(tol);
 
