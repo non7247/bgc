@@ -70,8 +70,24 @@ impl ops::AddAssign for Vector {
     }
 }
 
+impl ops::AddAssign<&Vector> for Vector {
+    fn add_assign(&mut self, rhs: &Vector) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
 impl ops::SubAssign for Vector {
     fn sub_assign(&mut self, rhs: Vector) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
+    }
+}
+
+impl ops::SubAssign<&Vector> for Vector {
+    fn sub_assign(&mut self, rhs: &Vector) {
         self.x -= rhs.x;
         self.y -= rhs.y;
         self.z -= rhs.z;
@@ -89,7 +105,7 @@ impl ops::MulAssign<f64> for Vector {
 impl ops::Add for Vector {
     type Output = Self;
 
-    fn add(self, rhs: Vector) -> Self {
+    fn add(self, rhs: Vector) -> Self::Output {
         Self::new(
             self.x + rhs.x,
             self.y + rhs.y,
@@ -98,10 +114,34 @@ impl ops::Add for Vector {
     }
 }
 
+impl ops::Add<&Vector> for Vector {
+    type Output = Self;
+
+    fn add(self, rhs: &Vector) -> Self::Output {
+        self + *rhs 
+    }
+}
+
+impl ops::Add<Vector> for &Vector {
+    type Output = Vector;
+
+    fn add(self, rhs: Vector) -> Self::Output {
+        *self + rhs
+    }
+}
+
+impl ops::Add for &Vector {
+    type Output = Vector;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        *self + *rhs
+    }
+}
+
 impl ops::Sub for Vector {
     type Output = Self;
 
-    fn sub(self, rhs: Vector) -> Self {
+    fn sub(self, rhs: Vector) -> Self::Output {
         Self::new(
             self.x - rhs.x,
             self.y - rhs.y,
@@ -110,16 +150,46 @@ impl ops::Sub for Vector {
     }
 }
 
+impl ops::Sub<&Vector> for Vector {
+    type Output = Self;
+
+    fn sub(self, rhs: &Vector) -> Self::Output {
+        self - *rhs
+    }
+}
+
+impl ops::Sub<Vector> for &Vector {
+    type Output = Vector;
+
+    fn sub(self, rhs: Vector) -> Self::Output {
+        *self - rhs
+    }
+}
+
+impl ops::Sub for &Vector {
+    type Output = Vector;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        *self - *rhs
+    }
+}
+
 impl ops::Mul<f64> for Vector {
     type Output = Self;
 
-    fn mul(self, m: f64) -> Self {
+    fn mul(self, m: f64) -> Self::Output {
         Self::new(self.x * m, self.y * m, self.z * m)
     }
 }
 
 impl From<Point> for Vector {
     fn from(p: Point) -> Self {
+        Self::new(p.x, p.y, p.z)
+    }
+}
+
+impl From<&Point> for Vector {
+    fn from(p: &Point) -> Self {
         Self::new(p.x, p.y, p.z)
     }
 }
@@ -165,7 +235,7 @@ mod tests {
         let mut lhs = Point::new(1.0, 2.0, 3.0);
         let rhs = Point::new(1.0, 2.0, 3.0);
 
-        lhs += rhs.into();
+        lhs += Into::<Vector>::into(rhs);
 
         assert!(lhs.is_equal_to(&Point::new(2.0, 4.0, 6.0), &Tolerance::default()));
     }

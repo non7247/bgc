@@ -67,8 +67,24 @@ impl ops::AddAssign<Vector> for Point {
     }
 }
 
+impl ops::AddAssign<&Vector> for Point {
+    fn add_assign(&mut self, rhs: &Vector) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
 impl ops::SubAssign<Vector> for Point {
     fn sub_assign(&mut self, rhs: Vector) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
+    }
+}
+
+impl ops::SubAssign<&Vector> for Point {
+    fn sub_assign(&mut self, rhs: &Vector) {
         self.x -= rhs.x;
         self.y -= rhs.y;
         self.z -= rhs.z;
@@ -78,7 +94,7 @@ impl ops::SubAssign<Vector> for Point {
 impl ops::Add<Vector> for Point {
     type Output = Self;
 
-    fn add(self, rhs: Vector) -> Self {
+    fn add(self, rhs: Vector) -> Self::Output {
         Self::new(
             self.x + rhs.x,
             self.y + rhs.y,
@@ -87,10 +103,34 @@ impl ops::Add<Vector> for Point {
     }
 }
 
+impl ops::Add<&Vector> for Point {
+    type Output = Self;
+
+    fn add(self, rhs: &Vector) -> Self::Output {
+        self + *rhs
+    }
+}
+
+impl ops::Add<Vector> for &Point {
+    type Output = Point;
+
+    fn add(self, rhs: Vector) -> Self::Output {
+        *self + rhs
+    }
+}
+
+impl ops::Add<&Vector> for &Point {
+    type Output = Point;
+
+    fn add(self, rhs: &Vector) -> Self::Output {
+        *self + *rhs
+    }
+}
+
 impl ops::Sub for Point {
     type Output = Vector;
 
-    fn sub(self, rhs: Self) -> Vector {
+    fn sub(self, rhs: Self) -> Self::Output {
         Vector::new(
             self.x - rhs.x,
             self.y - rhs.y,
@@ -99,15 +139,63 @@ impl ops::Sub for Point {
     }
 }
 
+impl ops::Sub<&Point> for Point {
+    type Output = Vector;
+
+    fn sub(self, rhs: &Point) -> Self::Output {
+        self - *rhs
+    }
+}
+
+impl ops::Sub<Point> for &Point {
+    type Output = Vector;
+
+    fn sub(self, rhs: Point) -> Self::Output {
+        *self - rhs
+    }
+}
+
+impl ops::Sub for &Point {
+    type Output = Vector;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        *self - *rhs
+    }
+}
+
 impl ops::Sub<Vector> for Point {
     type Output = Self;
 
-    fn sub(self, rhs: Vector) -> Self {
+    fn sub(self, rhs: Vector) -> Self::Output {
         Self::new(
             self.x - rhs.x,
             self.y - rhs.y,
             self.z - rhs.z
         )
+    }
+}
+
+impl ops::Sub<&Vector> for Point {
+    type Output = Self;
+
+    fn sub(self, rhs: &Vector) -> Self::Output {
+        self - *rhs
+    }
+}
+
+impl ops::Sub<Vector> for &Point {
+    type Output = Point;
+
+    fn sub(self, rhs: Vector) -> Self::Output {
+        *self - rhs
+    }
+}
+
+impl ops::Sub<&Vector> for &Point {
+    type Output = Point;
+
+    fn sub(self, rhs: &Vector) -> Self::Output {
+        *self - *rhs
     }
 }
 
