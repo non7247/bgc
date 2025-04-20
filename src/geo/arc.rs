@@ -237,4 +237,37 @@ mod tests  {
             &Tolerance::default()
         ));
     }
+
+    #[test]
+    fn arc_intersect_with_line() {
+        let arc = Arc::from_three_points(
+            &Point::new(-25.1550, -11.1966, 0.0),
+            &Point::new(41.0084, 0.8494, 0.0),
+            &Point::new(4.7497, 7.9195, 0.0),
+            &Tolerance::default()
+        );
+        let arc = match arc {
+            Ok(arc) => arc,
+            Err(error) => {
+                panic!("error in arc_intersect_with_line: {:?}", error);
+            }
+        };
+
+        let line = Line::new(Point::new(30.0, 20.0, 0.0), Point::new(-5.0, -10.0, 0.0));
+
+        let p = arc.intersect_with_line(&line, false, &Tolerance::default());
+
+        match p {
+            Ok(points) => {
+                assert_eq!(points.len(), 1);
+                assert!(points[0].is_equal_to(
+                    &Point::new(16.9110, 8.7808, 0.0),
+                    &Tolerance::default()
+                ));
+            },
+            Err(error) => {
+                panic!("error in arc_intersect_with_line: {:?}", error);
+            },
+        }
+    }
 }
