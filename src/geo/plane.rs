@@ -60,4 +60,8 @@ impl Plane {
     pub fn is_on(&self, point: &Point, tol: &Tolerance) -> bool {
         self.distance_to(point) <= tol.equal_point()
     }
+
+    pub fn get_normal_vector(&self, tol: &Tolerance) -> Vector {
+        Vector::new(self.param_a, self.param_b, self.param_c).normal(tol)
+    }
 }
