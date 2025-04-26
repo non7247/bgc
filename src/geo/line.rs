@@ -101,7 +101,14 @@ impl Line {
 
     /// Determines if input plane is parallel to this line.
     pub fn is_parallel_with_plane(&self, plane: &Plane, tol: &Tolerance) -> bool {
-        false
+        if self.start_point.is_equal_to(&self.end_point, tol) {
+            return false;
+        }
+
+        let nvec = plane.get_normal_vector(tol);
+        let in_prod = nvec.inner_product(&self.direction());
+
+        in_prod.abs() < tol.equal_vector
     }
 
     /// Calculates intersection points of input curve and this line.
