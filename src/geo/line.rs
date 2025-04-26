@@ -99,6 +99,11 @@ impl Line {
                 || dir_self.is_equal_to(&(dir_other * -1.0), tol))
     }
 
+    /// Determines if input plane is parallel to this line.
+    pub fn is_parallel_with_plane(&self, plane: &Plane, tol: &Tolerance) -> bool {
+        false
+    }
+
     /// Calculates intersection points of input curve and this line.
     pub fn intersect_with<T>(
         &self,
@@ -579,5 +584,53 @@ mod tests {
         } else {
             panic!("this test should not be error.");
         }
+    }
+
+    #[test]
+    fn test_parallel_xy_plane() {
+        let line = Line::new(Point::new(1.0, 1.0, 2.0), Point::new(3.0, 3.0, 2.0));
+        let plane = Plane { param_a: 0.0, param_b: 0.0, param_c: 1.0, param_d: -5.0 };
+
+        assert_eq!(line.is_parallel_with_plane(&plane, &Tolerance::default()), true);
+    }
+
+    #[test]
+    fn test_not_parallel_xy_plane_intersecting() {
+        let line = Line::new(Point::new(1.0, 1.0, 2.0), Point::new(3.0, 3.0, 5.0));
+        let plane = Plane { param_a: 0.0, param_b: 0.0, param_c: 1.0, param_d: -5.0 };
+
+        assert_eq!(line.is_parallel_with_plane(&plane, &Tolerance::default()), false);
+    }
+
+    #[test]
+    fn test_parallel_angled_plane() {
+        let line = Line::new(Point::new(0.0, 1.0, 1.0), Point::new(2.0, 3.0, 3.0));
+        let plane = Plane { param_a: 1.0, param_b: -1.0, param_c: 0.0, param_d: 2.0 };
+
+        assert_eq!(line.is_parallel_with_plane(&plane, &Tolerance::default()), true);
+    }
+
+    #[test]
+    fn test_parallel_angled_plane_on_plane() {
+        let line = Line::new(Point::new(0.0, 2.0, 1.0), Point::new(1.0, 3.0, 1.0));
+        let plane = Plane { param_a: 0.0, param_b: 0.0, param_c: 1.0, param_d: -1.0 };
+
+        assert_eq!(line.is_parallel_with_plane(&plane, &Tolerance::default()), true);
+    }
+
+    #[test]
+    fn test_parallel_general_case() {
+        let line = Line::new(Point::new(0.0, 0.0, 0.0), Point::new(1.0, 1.0, 1.0));
+        let plane = Plane { param_a: 2.0, param_b: -2.0, param_c: 0.0, param_d: 0.0 };
+
+        assert_eq!(line.is_parallel_with_plane(&plane, &Tolerance::default()), true);
+    }
+
+    #[test]
+    fn test_parallel_general_case_on_plane() {
+        let line = Line::new(Point::new(1.0, 1.0, 1.0), Point::new(2.0, 2.0, 2.0));
+        let plane = Plane { param_a: 1.0, param_b: -1.0, param_c: 0.0, param_d: 0.0 };
+
+        assert_eq!(line.is_parallel_with_plane(&plane, &Tolerance::default()), true);
     }
 }
