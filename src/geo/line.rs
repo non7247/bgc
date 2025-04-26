@@ -19,8 +19,8 @@ impl Line {
         self.start_point.distance_to(&self.end_point)
     }
 
-    pub fn direction(&self) -> Vector {
-        (self.end_point - self.start_point).normal(&Tolerance::default())
+    pub fn direction(&self, tol: &Tolerance) -> Vector {
+        (self.end_point - self.start_point).normal(tol)
     }
 
     /// Calculates the closest point on this line to input point.
@@ -40,7 +40,7 @@ impl Line {
             return self.end_point;
         }
 
-        let uvec = self.direction();
+        let uvec = self.direction(tol);
 
         let t = (p0.x - self.start_point.x) * uvec.x
               + (p0.y - self.start_point.y) * uvec.y
@@ -91,8 +91,8 @@ impl Line {
         let dist_start = self.start_point.distance_to(&closest_start);
         let dist_end = self.end_point.distance_to(&closest_end);
 
-        let dir_self = self.direction();
-        let dir_other = l.direction();
+        let dir_self = self.direction(tol);
+        let dir_other = l.direction(tol);
 
         (dist_start - dist_end).abs() <= tol.equal_point() 
             && (dir_self.is_equal_to(&dir_other, tol) 
@@ -106,7 +106,7 @@ impl Line {
         }
 
         let nvec = plane.get_normal_vector(tol);
-        let in_prod = nvec.inner_product(&self.direction());
+        let in_prod = nvec.inner_product(&self.direction(tol));
 
         in_prod.abs() < tol.equal_vector
     }
@@ -142,7 +142,7 @@ impl Line {
             return Err(BgcError::InvalidInput);
         }
 
-        Ok(self.start_point + self.direction() * distance)
+        Ok(self.start_point + self.direction(tol) * distance)
     }
 
     /// Calculates the intersection point the line makes with a plane.
@@ -228,8 +228,8 @@ impl Curve for Line {
             return Err(BgcError::MustBeNonZero);
         }
 
-        let dir1 = self.direction();
-        let dir2 = other.direction();
+        let dir1 = self.direction(tol);
+        let dir2 = other.direction(tol);
 
         let q = dir1.inner_product(&dir2);
 
