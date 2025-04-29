@@ -21,7 +21,22 @@ use crate::{ BgcError, Tolerance };
 /// * `Err(BgcError::MustBeNoNegative)` - b^2 - 4ac < 0.0
 ///
 pub fn quadratic_equation(a: f64, b: f64, c: f64, tol: &Tolerance) -> Result<(f64, f64), BgcError> {
-    Err(BgcError::NotImplemented)
+    if a.abs() <= tol.calculation() { return Err(BgcError::InvalidInput); }
+
+    let mut discriminant = b * b - 4.0 * a * c;
+    if discriminant.abs() <= tol.calculation() {
+        discriminant = 0.0;
+    }
+
+    if discriminant < 0.0 {
+        dbg!(discriminant);
+        return Err(BgcError::MustBeNoNegative);
+    }
+
+    let result1 = (-b + discriminant.sqrt()) / (2.0 * a);
+    let result2 = (-b - discriminant.sqrt()) / (2.0 * a);
+
+    Ok((result1, result2))
 }
 
 #[cfg(test)]
@@ -50,7 +65,7 @@ mod tests {
         let r = quadratic_equation(23.2, 18.5, 97.6, &tol);
         match r {
             Ok(_) => { panic!("this test should be error."); },
-            Err(err) => { assert_eq!(err, BgcError::MustBeNonZero); },
+            Err(err) => { assert_eq!(err, BgcError::MustBeNoNegative); },
         }
 
         let r = quadratic_equation(12.3, 0.2, -10256.8, &tol);
