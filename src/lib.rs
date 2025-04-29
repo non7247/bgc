@@ -1,4 +1,5 @@
 pub mod geo;
+pub mod math;
 
 pub const DEFAULT_TOLERANCE_CALCULATION: f64 = 1.0e-8;
 pub const DEFAULT_TOLERANCE_CONVERGENCE: f64 = 1.0e-6;
@@ -32,9 +33,6 @@ impl std::fmt::Display for BgcError {
             BgcError::NotImplemented => write!(f, "not implemented"),
         }
     }
-}
-
-mod math {
 }
 
 #[derive(Debug)]
