@@ -66,7 +66,7 @@ impl Line {
     }
 
     /// Determines if input point lies on this line.
-    pub fn is_on(&self, p: &Point, extends: bool, tol: &Tolerance) -> bool {
+    pub fn contains(&self, p: &Point, extends: bool, tol: &Tolerance) -> bool {
         if p.is_equal_to(&self.start_point, tol) || p.is_equal_to(&self.end_point, tol) {
             return true;
         }
@@ -155,11 +155,11 @@ impl Line {
         tol: &Tolerance
     ) -> Result<Point, BgcError>
     {
-        if plane.is_on(&self.start_point, tol) {
+        if plane.contains(&self.start_point, tol) {
             dbg!("start point is on plane.");
             return Ok(self.start_point);
         }
-        if plane.is_on(&self.end_point, tol) {
+        if plane.contains(&self.end_point, tol) {
             dbg!("end point is on plane.");
             return Ok(self.end_point);
         }
@@ -183,7 +183,7 @@ impl Line {
 
         let ipoint = self.start_point + (self.end_point - self.start_point) * u;
 
-        if !self.is_on(&ipoint, extends, tol) {
+        if !self.contains(&ipoint, extends, tol) {
             return Err(BgcError::InvalidInput);
         }
 
@@ -244,7 +244,7 @@ impl Curve for Line {
         let int_p1 = self.start_point + dir1 * l1;
         let int_p2 = other.start_point + dir2 * l2;
 
-        if !self.is_on(&int_p1, extends, tol) || !other.is_on(&int_p2, extends, tol) {
+        if !self.contains(&int_p1, extends, tol) || !other.contains(&int_p2, extends, tol) {
             return Err(BgcError::InvalidInput);
         }
 
@@ -316,17 +316,17 @@ mod tests {
     fn line_is_on() {
         let l = Line::new(Point::new(-26.0564, -13.8449, 0.0), Point::new(44.2176, 19.9981, 0.0));
 
-        assert!(l.is_on(&Point::new(0.2074, -1.1966, 0.0), true, &Tolerance::default()));
-        assert!(l.is_on(&Point::new(-26.0564, -13.8449, 0.0), true, &Tolerance::default()));
-        assert!(l.is_on(&Point::new(44.2176, 19.9981, 0.0), true, &Tolerance::default()));
+        assert!(l.contains(&Point::new(0.2074, -1.1966, 0.0), true, &Tolerance::default()));
+        assert!(l.contains(&Point::new(-26.0564, -13.8449, 0.0), true, &Tolerance::default()));
+        assert!(l.contains(&Point::new(44.2176, 19.9981, 0.0), true, &Tolerance::default()));
 
-        assert!(!l.is_on(&Point::new(-35.0660, -18.1838, 0.0), false, &Tolerance::default()));
-        assert!(l.is_on(&Point::new(-35.0660, -18.1838, 0.0), true, &Tolerance::default()));
-        assert!(!l.is_on(&Point::new(57.7321, 26.5065, 0.0), false, &Tolerance::default()));
-        assert!(l.is_on(&Point::new(57.7321, 26.5065, 0.0), true, &Tolerance::default()));
+        assert!(!l.contains(&Point::new(-35.0660, -18.1838, 0.0), false, &Tolerance::default()));
+        assert!(l.contains(&Point::new(-35.0660, -18.1838, 0.0), true, &Tolerance::default()));
+        assert!(!l.contains(&Point::new(57.7321, 26.5065, 0.0), false, &Tolerance::default()));
+        assert!(l.contains(&Point::new(57.7321, 26.5065, 0.0), true, &Tolerance::default()));
 
-        assert!(!l.is_on(&Point::new(-12.6810, -2.9175, 0.0), true, &Tolerance::default()));
-        assert!(!l.is_on(&Point::new(18.7406, 5.9941, 0.0), true, &Tolerance::default()));
+        assert!(!l.contains(&Point::new(-12.6810, -2.9175, 0.0), true, &Tolerance::default()));
+        assert!(!l.contains(&Point::new(18.7406, 5.9941, 0.0), true, &Tolerance::default()));
     }
 
     #[test]

@@ -124,7 +124,7 @@ impl Arc {
     }
 
     /// Determines if input point lies on this arc.
-    pub fn is_on(&self, point: &Point, extends: bool, tol: &Tolerance) -> bool {
+    pub fn contains(&self, point: &Point, extends: bool, tol: &Tolerance) -> bool {
         if self.start_point().is_equal_to(point, tol) || self.end_point().is_equal_to(point, tol) {
             return true;
         }
@@ -173,9 +173,25 @@ impl Curve for Arc {
         other: &Line,
         extends: bool,
         tol: &Tolerance
-    ) -> Result<Vec<Point>, BgcError>
-    {
-        Ok(vec![Point::new(0.0, 0.0, 0.0)])
+    ) -> Result<Vec<Point>, BgcError> {
+        let z_axis = self.x_axis.outer_product(&self.y_axis);
+        let local_plane = Plane::from(&self.center_point, &z_axis, tol);
+
+        if other.is_parallel_with_plane(&local_plane, tol) {
+            if local_plane.contains(&other.start_point, tol) {
+
+            }
+        } else {
+            let intersection = other.intersect_with_plane(&local_plane, extends, tol)?;
+            dbg!(intersection);
+            if self.contains(&intersection, extends, tol) {
+                return Ok(vec![intersection]);
+            } else {
+                return Err(BgcError::InvalidInput);
+            }
+        }
+
+        Err(BgcError::InvalidInput)
     }
 }
 
@@ -231,7 +247,7 @@ mod tests  {
             }
         };
 
-        assert!(arc.is_on(
+        assert!(arc.contains(
             &Point::new(50748.612270, 6499.672934, 0.0),
             false,
             &Tolerance::default()
