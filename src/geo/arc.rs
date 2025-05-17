@@ -55,9 +55,10 @@ impl Arc {
                 &center,
                 &x_axis,
                 &y_axis,
-                &Tolerance::default()
-            )
-        );
+                tol
+            ),
+            tol
+        )?;
         let end_angle = Arc::calc_angle_at_local_point(&local_end);
 
         Ok(Self { center_point: center,
@@ -94,8 +95,9 @@ impl Arc {
                 &self.x_axis,
                 &self.y_axis,
                 tol
-            )
-        );
+            ),
+            tol
+        )?;
         local_point.z = 0.0;
 
         let line = Line::new(Point::origin(), local_point);
@@ -117,9 +119,10 @@ impl Arc {
                     &self.center_point,
                     &self.x_axis,
                     &self.y_axis,
-                    tol)
-                )
-            )
+                    tol
+                ),
+                tol
+            )?)
         }
     }
 
