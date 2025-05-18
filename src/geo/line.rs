@@ -189,6 +189,13 @@ impl Line {
 
         Ok(ipoint)
     }
+
+    pub fn transform(&self, mat: &Matrix3d, tol: &Tolerance) -> Result<Self, BgcError> {
+        let start_point = self.start_point.transform(mat, tol)?;
+        let end_point = self.end_point.transform(mat, tol)?;
+
+        Ok(Self::new(start_point, end_point))
+    }
 }
 
 impl Curve for Line {

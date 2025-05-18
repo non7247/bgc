@@ -41,26 +41,26 @@ impl Point {
     /// Transforms this point to the coordinate system of the transformation matrix
     ///
     /// \[M\] * \[p\] = \[p'\]
-    pub fn transform(&self, rhs: &Matrix3d, tol: &Tolerance) -> Result<Self, BgcError> {
-        let x_prime = rhs.get(0, 0) * self.x
-            + rhs.get(0, 1) * self.y
-            + rhs.get(0, 2) * self.z
-            + rhs.get(0, 3) * 1.0;
+    pub fn transform(&self, mat: &Matrix3d, tol: &Tolerance) -> Result<Self, BgcError> {
+        let x_prime = mat.get(0, 0) * self.x
+            + mat.get(0, 1) * self.y
+            + mat.get(0, 2) * self.z
+            + mat.get(0, 3) * 1.0;
 
-        let y_prime = rhs.get(1, 0) * self.x
-            + rhs.get(1, 1) * self.y
-            + rhs.get(1, 2) * self.z
-            + rhs.get(1, 3) * 1.0;
+        let y_prime = mat.get(1, 0) * self.x
+            + mat.get(1, 1) * self.y
+            + mat.get(1, 2) * self.z
+            + mat.get(1, 3) * 1.0;
 
-        let z_prime = rhs.get(2, 0) * self.x
-            + rhs.get(2, 1) * self.y
-            + rhs.get(2, 2) * self.z
-            + rhs.get(2, 3) * 1.0;
+        let z_prime = mat.get(2, 0) * self.x
+            + mat.get(2, 1) * self.y
+            + mat.get(2, 2) * self.z
+            + mat.get(2, 3) * 1.0;
 
-        let w_prime = rhs.get(3, 0) * self.x
-            + rhs.get(3, 1) * self.y
-            + rhs.get(3, 2) * self.z
-            + rhs.get(3, 3) * 1.0;
+        let w_prime = mat.get(3, 0) * self.x
+            + mat.get(3, 1) * self.y
+            + mat.get(3, 2) * self.z
+            + mat.get(3, 3) * 1.0;
 
         if w_prime.abs() < tol.calculation() {
             Err(BgcError::MustBeNonZero)
