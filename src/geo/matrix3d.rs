@@ -28,18 +28,18 @@ impl Matrix3d {
     fn to_origin(origin: &Point) -> Self {
         let mut matrix = Self::identity();
 
-        matrix.set(3, 0, -origin.x);
-        matrix.set(3, 1, -origin.y);
-        matrix.set(3, 2, -origin.z);
+        matrix.set(0, 3, -origin.x);
+        matrix.set(1, 3, -origin.y);
+        matrix.set(2, 3, -origin.z);
 
         matrix
     }
 
     fn rotation_axis(uaxis: &Vector, vaxis: &Vector, waxis: &Vector) -> Self {
         Self { matrix: [
-            [uaxis.x, vaxis.x, waxis.x, 0.0],
-            [uaxis.y, vaxis.y, waxis.y, 0.0],
-            [uaxis.z, vaxis.z, waxis.z, 0.0],
+            [uaxis.x, uaxis.y, uaxis.z, 0.0],
+            [vaxis.x, vaxis.y, vaxis.z, 0.0],
+            [waxis.x, waxis.y, waxis.z, 0.0],
             [0.0, 0.0, 0.0, 1.0]
         ] }
     }
@@ -77,13 +77,11 @@ impl Matrix3d {
     ) -> Self {
         let waxis = uaxis.outer_product(vaxis);
 
-        Self::to_origin(origin).multiply_by(
-            &Self::rotation_axis(
-                &uaxis.normal(tol), 
-                &vaxis.normal(tol),
-                &waxis.normal(tol)
-            )
-        )
+        Self::rotation_axis(
+            &uaxis.normal(tol),
+            &vaxis.normal(tol),
+            &waxis.normal(tol)
+        ).multiply_by(&Self::to_origin(origin))
     }
 
     /// Returns the matrix of transformation into the world coordinate system.
@@ -100,10 +98,10 @@ impl Matrix3d {
         let w = waxis.normal(tol);
 
         Self { matrix: [
-            [u.x, u.y, u.z, 0.0],
-            [v.x, v.y, v.z, 0.0],
-            [w.x, w.y, w.z, 0.0],
-            [origin.x, origin.y, origin.z, 1.0]
+            [u.x, v.x, w.x, origin.x],
+            [u.y, v.y, w.y, origin.y],
+            [u.z, v.z, w.z, origin.z],
+            [0.0, 0.0, 0.0, 1.0]
         ] }
     }
 }
@@ -120,102 +118,98 @@ mod tests {
 
     #[test]
     fn matrix3d_transform_to_local() {
-        let d = 1.0e-6;
+        let tol = Tolerance::default();
 
         let origin = Point::new(1.0, 1.0, 1.0);
         let uaxis = Vector::new(1.0, 1.0, 1.0);
         let vaxis = Vector::new(-1.0, 1.0, -1.0);
-        let result = Matrix3d::transform_to_local(
-            &origin,
-            &uaxis,
-            &vaxis,
-            &Tolerance::default()
-        );
+        let to_local = Matrix3d::transform_to_local(&origin, &uaxis, &vaxis, &tol);
 
-        assert!((result.get(0, 0) - 0.577350).abs() < d);
-        assert!((result.get(1, 1) - 0.577350).abs() < d);
-        assert!((result.get(2, 2) - 0.707107).abs() < d);
-        assert!((result.get(3, 3) - 1.0).abs() < d);
+        assert!((to_local.get(0, 0) - 0.577350).abs() < tol.calculation());
+        assert!((to_local.get(1, 1) - 0.577350).abs() < tol.calculation());
+        assert!((to_local.get(2, 2) - 0.707107).abs() < tol.calculation());
+        assert!((to_local.get(3, 3) - 1.0).abs() < tol.calculation());
 
-        let transformed = origin.transform(&result);
-        assert!(transformed.is_equal_to(
-            &Point::new(0.0, 0.0, 0.0),
-            &Tolerance::default()
-        ));
+        let transformed = origin.transform(&to_local, &tol);
+        match transformed {
+            Ok(p) => assert!(p.is_equal_to(&Point::new(0.0, 0.0, 0.0), &tol)),
+            Err(error) => {
+                panic!("error in matrix3d_transform_to_local: {:?}", error); 
+            }
+        }
 
         let origin = Point::new(10.0, 20.0, 30.0);
         let uaxis = Vector::new(0.866025, 0.5, 0.0);
         let vaxis = Vector::new(-0.5, 0.866025, 0.0);
-        let result = Matrix3d::transform_to_local(
-            &origin,
-            &uaxis,
-            &vaxis,
-            &Tolerance::default()
-        );
+        let to_local = Matrix3d::transform_to_local(&origin, &uaxis, &vaxis, &tol);
 
-        let transformed = Point::new(8.6603, 42.3205, 60.0).transform(&result);
-        assert!(transformed.is_equal_to(
-            &Point::new(10.0, 20.0, 30.0),
-            &Tolerance::default()
-        ));
+        let transformed = Point::new(8.6603, 42.3205, 60.0).transform(&to_local, &tol);
+        match transformed {
+            Ok(p) => assert!(p.is_equal_to(&Point::new(10.0, 20.0, 30.0), &tol)),
+            Err(error) => {
+                panic!("error in matrix3d_transform_to_local: {:?}", error); 
+            }
+        }
 
         let origin = Point::new(83055.711625, 4650.0, 14686.607338);
         let uaxis = Vector::new(1.0, 0.0, -0.000556);
         let vaxis = Vector::new(0.000510, 0.398880, 0.917003);
-        let result = Matrix3d::transform_to_local(
-            &origin,
-            &uaxis,
-            &vaxis,
-            &Tolerance::default()
-        );
+        let to_local = Matrix3d::transform_to_local(&origin, &uaxis, &vaxis, &tol);
 
-        let transformed = origin.transform(&result);
-        assert!(transformed.is_equal_to(
-            &Point::new(0.0, 0.0, 0.0),
-            &Tolerance::default()
-        ));
+        let transformed = origin.transform(&to_local, &tol);
+        match transformed {
+            Ok(p) => assert!(p.is_equal_to(&Point::new(0.0, 0.0, 0.0), &tol)),
+            Err(error) => {
+                panic!("error in matrix3d_transform_to_local: {:?}", error); 
+            }
+        }
 
-        let transformed = Point::new(92443.211625, 5959.902281, 17693.140222).transform(&result);
-        assert!(transformed.is_equal_to(
-            &Point::new(9385.826917, 3284.281094, 0.143078),
-            &Tolerance::default()
-        ), "transformed is {:?}", transformed);
+        let transformed 
+            = Point::new(92443.211625, 5959.902281, 17693.140222).transform(&to_local, &tol);
+        match transformed {
+            Ok(p) => {
+                assert!(p.is_equal_to(&Point::new(9385.826917, 3284.281094, 0.143078), &tol));
+            },
+            Err(error) => {
+                panic!("error in matrix3d_transform_to_local: {:?}", error); 
+            }
+        }
     }
 
     #[test]
     fn matrix3d_transform_to_world() {
+        let tol = Tolerance::default();
+
         let origin = Point::new(10.0, 20.0, 30.0);
         let uaxis = Vector::new(0.866025, 0.5, 0.0);
         let vaxis = Vector::new(-0.5, 0.866025, 0.0);
-        let result = Matrix3d::transform_to_world(
-            &origin,
-            &uaxis,
-            &vaxis,
-            &Tolerance::default()
-        );
+        let to_world = Matrix3d::transform_to_world(&origin, &uaxis, &vaxis, &tol);
 
-        let transformed = origin.transform(&result);
-        assert!(transformed.is_equal_to(
-            &Point::new(8.6603, 42.3205, 60.0),
-            &Tolerance::default()
-        ));
+        let transformed = origin.transform(&to_world, &tol);
+        match transformed {
+            Ok(p) => assert!(p.is_equal_to(&Point::new(8.6603, 42.3205, 60.0), &tol)),
+            Err(error) => {
+                panic!("error in matrix3d_transform_to_world: {:?}", error);
+            }
+        }
 
         let origin = Point::new(83055.711625, 4650.0, 14686.607338);
         let uaxis = Vector::new(1.0, 0.0, -0.000556);
         let vaxis = Vector::new(0.000510, 0.398880, 0.917003);
-        let result = Matrix3d::transform_to_world(
-            &origin, 
-            &uaxis, 
-            &vaxis,
-            &Tolerance::default()
-        );
+        let to_world = Matrix3d::transform_to_world(&origin, &uaxis, &vaxis, &tol);
 
-        let mut tol = Tolerance::default();
-        tol.set_equal_point(0.005);
-        let transformed = Point::new(9385.826917, 3284.281094, 0.143078).transform(&result);
-        assert!(transformed.is_equal_to(
-            &Point::new(92443.211625, 5959.902281, 17693.140222),
-            &tol
-        ), "transformed is {:?}", transformed);
+        let mut ex_tol = Tolerance::default();
+        ex_tol.set_equal_point(0.005);
+        let transformed 
+            = Point::new(9385.826917, 3284.281094, 0.143078).transform(&to_world, &tol);
+        match transformed {
+            Ok(p) => assert!(p.is_equal_to(
+                &Point::new(92443.211625, 5959.902281, 17693.140222),
+                &ex_tol
+            )),
+            Err(error) => {
+                panic!("error in matrix3d_transform_to_world: {:?}", error);
+            }
+        }
     }
 }
