@@ -190,6 +190,9 @@ impl Line {
         Ok(ipoint)
     }
 
+    /// Transforms this point to the coordinate system of the transformation matrix
+    ///
+    /// \[M\] * l = l'
     pub fn transform(&self, mat: &Matrix3d, tol: &Tolerance) -> Result<Self, BgcError> {
         let start_point = self.start_point.transform(mat, tol)?;
         let end_point = self.end_point.transform(mat, tol)?;

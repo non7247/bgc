@@ -18,8 +18,7 @@ impl Arc {
         end_point: &Point,
         on_arc: &Point,
         tol: &Tolerance
-    ) -> Result<Self, BgcError>
-    {
+    ) -> Result<Self, BgcError> {
         let to_start = (start_point - on_arc).normal(tol);
         let to_end = (end_point - on_arc).normal(tol);
 
@@ -87,8 +86,7 @@ impl Arc {
         point: &Point,
         extends: bool,
         tol: &Tolerance
-    ) -> Result<Point, BgcError>
-    {
+    ) -> Result<Point, BgcError> {
         let mut local_point = point.transform(
             &Matrix3d::transform_to_local(
                 &self.center_point,
@@ -168,6 +166,15 @@ impl Arc {
 
         true
     }
+
+    fn intersect_with_line_in_local(
+        &self,
+        other: &Line,
+        extends: bool,
+        tol: &Tolerance
+    ) -> Result<Vec<Point>, BgcError> {
+        Err(BgcError::NotImplemented)
+    }
 }
 
 impl Curve for Arc {
@@ -182,7 +189,16 @@ impl Curve for Arc {
 
         if other.is_parallel_with_plane(&local_plane, tol) {
             if local_plane.contains(&other.start_point, tol) {
+                let local_line = other.transform(
+                    &Matrix3d::transform_to_local(
+                        &self.center_point,
+                        &self.x_axis,
+                        &self.y_axis,
+                        tol
+                    ),
+                tol)?;
 
+                return Ok(self.intersect_with_line_in_local(&local_line, extends, tol)?);
             }
         } else {
             let intersection = other.intersect_with_plane(&local_plane, extends, tol)?;
