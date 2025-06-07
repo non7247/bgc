@@ -60,6 +60,25 @@ impl Vector {
             self.x * rhs.y - self.y * rhs.x
         )
     }
+
+    /// Calculates the angle of XY relative to the positive X-axis.
+    /// 
+    /// # Returns
+    /// The angle of the vector in radians, in the range `[0.0, 2 * PI)`.
+    pub fn angle_xy(&self, tol: &Tolerance) -> f64 {
+        if self.x.abs() < tol.equal_vector() && self.y.abs() < tol.equal_vector() {
+            return 0.0;
+        }
+
+        let angle = self.y.atan2(self.x);
+        if angle.abs() < tol.calculation() {
+            0.0
+        } else if angle < 0.0 {
+            angle + std::f64::consts::PI * 2.0
+        } else {
+            angle
+        }
+    }
 }
 
 impl ops::AddAssign for Vector {
