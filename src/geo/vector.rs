@@ -39,6 +39,10 @@ impl Vector {
         diff.length() < tol.equal_vector()
     }
 
+    pub fn is_parallel_to(&self, other: &Self, tol: &Tolerance) -> bool {
+        false
+    }
+
     pub fn normal(&self, tol: &Tolerance) -> Self {
         let l = self.length();
 
@@ -227,6 +231,75 @@ mod tests {
         let rhs = Vector::new(1.1, 2.1, 3.1);
 
         assert!(!lhs.is_equal_to(&rhs, &Tolerance::default()));
+    }
+
+    #[test]
+    fn vector_is_parallel_to() {
+        let tol = Tolerance::default();
+
+        let lhs = Vector::new(0.0, 3.0, 4.0);
+        let rhs = Vector::new(0.0, 6.0, 8.0);
+        assert!(lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(5.0, 0.0, -2.0);
+        let rhs = Vector::new(-10.0, 0.0, 4.0);
+        assert!(lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(1.0, 2.0, 3.0);
+        let rhs = Vector::new(2.0, 4.0, 6.0);
+        assert!(lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(1.0, 2.0, 3.0);
+        let rhs = Vector::new(-2.0, -4.0, -6.0);
+        assert!(lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(7.0, 8.0, 9.0);
+        let rhs = Vector::new(7.0, 8.0, 9.0);
+        assert!(lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(0.0, 1.0, 0.0);
+        let rhs = Vector::new(0.0, 0.0, 1.0);
+        assert!(!lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(1.0, 0.0, 0.0);
+        let rhs = Vector::new(0.0, 0.0, 1.0);
+        assert!(!lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(1.0, 0.0, 0.0);
+        let rhs = Vector::new(0.0, 1.0, 0.0);
+        assert!(!lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(1.0, 2.0, 3.0);
+        let rhs = Vector::new(2.0000001, 4.0000002, 6.0000003);
+        assert!(lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(1.0, 2.0, 3.0);
+        let rhs = Vector::new(2.000001, 4.000002, 6.000003);
+        assert!(!lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(0.0, 0.0, 0.0);
+        let rhs = Vector::new(1.0, 2.0, 3.0);
+        assert!(!lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        let lhs = Vector::new(0.0, 0.0, 0.0);
+        let rhs = Vector::new(0.0, 0.0, 0.0);
+        assert!(!lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        // If the dot product of normalized vectors is very close to
+        // 1.0 - tol.equal_vector(), they should be parallel.
+        let lhs = Vector::new(1.0, 0.0, 0.0);
+        let cos_val = 1.0 - tol.equal_vector() + 1.0e-12;
+        let sin_val = (1.0 - cos_val.powi(2)).sqrt();
+        let rhs = Vector::new(cos_val, sin_val, 0.0);
+        assert!(lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+
+        // If the dot product of normalized vectors is very close to
+        // 1.0 - tol.equal_vector(), they should be non-parallel.
+        let lhs = Vector::new(1.0, 0.0, 0.0);
+        let cos_val = 1.0 - tol.equal_vector() - 1.0e-12;
+        let sin_val = (1.0 - cos_val.powi(2)).sqrt();
+        let rhs = Vector::new(cos_val, sin_val, 0.0);
+        assert!(!lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
     }
 
     #[test]
