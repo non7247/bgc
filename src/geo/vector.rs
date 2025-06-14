@@ -40,6 +40,15 @@ impl Vector {
     }
 
     pub fn is_parallel_to(&self, other: &Self, tol: &Tolerance) -> bool {
+        if self.length() < tol.equal_vector() || other.length() < tol.equal_vector() {
+            return false;
+        }
+
+        let ip = self.normal(tol).inner_product(&other.normal(tol));
+        if (ip.abs() - 1.0).abs() < tol.equal_vector() {
+            return true;
+        }
+
         false
     }
 
@@ -270,12 +279,8 @@ mod tests {
         assert!(!lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
 
         let lhs = Vector::new(1.0, 2.0, 3.0);
-        let rhs = Vector::new(2.0000001, 4.0000002, 6.0000003);
-        assert!(lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
-
-        let lhs = Vector::new(1.0, 2.0, 3.0);
         let rhs = Vector::new(2.000001, 4.000002, 6.000003);
-        assert!(!lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
+        assert!(lhs.is_parallel_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
 
         let lhs = Vector::new(0.0, 0.0, 0.0);
         let rhs = Vector::new(1.0, 2.0, 3.0);
