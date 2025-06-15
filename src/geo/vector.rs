@@ -232,14 +232,16 @@ mod tests {
 
     #[test]
     fn vector_is_equal_to() {
+        let tol = Tolerance::default();
+
         let lhs = Vector::new(1.0, 2.0, 3.0);
         let rhs = Vector::new(1.0, 2.0, 3.0);
 
-        assert!(lhs.is_equal_to(&rhs, &Tolerance::default()));
+        assert!(lhs.is_equal_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
 
         let rhs = Vector::new(1.1, 2.1, 3.1);
 
-        assert!(!lhs.is_equal_to(&rhs, &Tolerance::default()));
+        assert!(!lhs.is_equal_to(&rhs, &tol), "lhs: {:?}, rhs: {:?}", lhs, rhs);
     }
 
     #[test]
@@ -309,31 +311,35 @@ mod tests {
 
     #[test]
     fn vector_operators() {
+        let tol = Tolerance::default();
+
         let mut lhs = Vector::new(10.0, 10.0, 10.0);
         let rhs = Vector::new(5.0, -5.0, 0.0);
 
         lhs += rhs;
 
-        assert!(lhs.is_equal_to(&Vector::new(15.0, 5.0, 10.0), &Tolerance::default()));
+        assert!(lhs.is_equal_to(&Vector::new(15.0, 5.0, 10.0), &tol), "+=: {:?}", lhs);
 
         lhs -= rhs;
 
-        assert!(lhs.is_equal_to(&Vector::new(10.0, 10.0, 10.0), &Tolerance::default()));
+        assert!(lhs.is_equal_to(&Vector::new(10.0, 10.0, 10.0), &tol), "-=: {:?}", lhs);
 
         let result = lhs + rhs;
-        assert!(result.is_equal_to(&Vector::new(15.0, 5.0, 10.0), &Tolerance::default()));
+        assert!(result.is_equal_to(&Vector::new(15.0, 5.0, 10.0), &tol), "+: {:?}", result);
 
         let result = lhs - rhs;
-        assert!(result.is_equal_to(&Vector::new(5.0, 15.0, 10.0), &Tolerance::default()));
+        assert!(result.is_equal_to(&Vector::new(5.0, 15.0, 10.0), &tol), "-: {:?}", result);
     }
 
     #[test]
     fn vector_from_trait() {
+        let tol = Tolerance::default();
+
         let mut lhs = Point::new(1.0, 2.0, 3.0);
         let rhs = Point::new(1.0, 2.0, 3.0);
 
         lhs += Into::<Vector>::into(rhs);
 
-        assert!(lhs.is_equal_to(&Point::new(2.0, 4.0, 6.0), &Tolerance::default()));
+        assert!(lhs.is_equal_to(&Point::new(2.0, 4.0, 6.0), &tol));
     }
 }
