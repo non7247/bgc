@@ -1,5 +1,5 @@
 use super::*;
-use crate::{ BgcError, Tolerance };
+use crate::{ BgcError, Tolerance, math };
 
 #[derive(Debug)]
 pub struct Arc {
@@ -173,7 +173,43 @@ impl Arc {
         extends: bool,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        Err(BgcError::NotImplemented)
+        let start = other.start_point;
+        let dir = other.direction(tol).normal(tol);
+
+        let a = dir.x * dir.x + dir.y * dir.y;
+        let b = 2.0 * (start.x * dir.x + start.y * dir.y);
+        let c = start.x * start.x + start.y * start.y - self.radius * self.radius;
+
+        let roots = match math::quadratic_equation(a, b, c, tol) {
+            Ok(roots) => roots,
+            Err(_) => {
+                return Err(BgcError::InvalidInput);
+            }
+        };
+
+        let p1 = other.point_at_dist(roots.0, true, tol)?;
+        let p2 = other.point_at_dist(roots.1, true, tol)?;
+
+        let mut points = Vec::new();
+        if self.is_param_in_range(Arc::calc_angle_at_local_point(&p1), tol) {
+            if extends || other.contains(&p1, false, tol) {
+                points.push(p1);
+            }
+        }
+
+        if !p1.is_equal_to(&p2, tol) {
+            if self.is_param_in_range(Arc::calc_angle_at_local_point(&p2), tol) {
+                if extends || other.contains(&p2, false, tol) {
+                    points.push(p2);
+                }
+            }
+        }
+
+        if points.is_empty() {
+            Err(BgcError::InvalidInput)
+        } else {
+            Ok(points)
+        }
     }
 }
 
@@ -198,7 +234,19 @@ impl Curve for Arc {
                     ),
                 tol)?;
 
-                return Ok(self.intersect_with_line_in_local(&local_line, extends, tol)?);
+                let local_points = self.intersect_with_line_in_local(&local_line, extends, tol)?;
+                let world_points = local_points.iter().map(|p| {
+                    p.transform(
+                        &Matrix3d::transform_to_world(
+                            &self.center_point,
+                            &self.x_axis,
+                            &self.y_axis,
+                            tol
+                        ),
+                        tol
+                    ).unwrap()
+                }).collect();
+                return Ok(world_points);
             }
         } else {
             let intersection = other.intersect_with_plane(&local_plane, extends, tol)?;
@@ -303,6 +351,135 @@ mod tests  {
             Err(error) => {
                 panic!("error in arc_intersect_with_line: {:?}", error);
             },
+        }
+    }
+
+    #[test]
+    fn arc_intersect_with_line_two_points() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI, // Semicircle
+        };
+        let line = Line::new(Point::new(-10.0, 3.0, 0.0), Point::new(10.0, 3.0, 0.0));
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_line(&line, false, &tol);
+
+        match result {
+            Ok(points) => {
+                assert_eq!(points.len(), 2);
+                // Intersections should be at (4, 3) and (-4, 3)
+                let p1 = Point::new(4.0, 3.0, 0.0);
+                let p2 = Point::new(-4.0, 3.0, 0.0);
+                assert!(points.iter().any(|p| p.is_equal_to(&p1, &tol)));
+                assert!(points.iter().any(|p| p.is_equal_to(&p2, &tol)));
+            },
+            Err(e) => panic!("Expected two intersection points, but got error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn arc_intersect_with_line_no_intersection() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI,
+        };
+        // Line is outside the circle
+        let line = Line::new(Point::new(-10.0, 6.0, 0.0), Point::new(10.0, 6.0, 0.0));
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_line(&line, false, &tol);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
+    }
+
+    #[test]
+    fn arc_intersect_with_line_tangent() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI,
+        };
+        let line = Line::new(Point::new(-10.0, 5.0, 0.0), Point::new(10.0, 5.0, 0.0));
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_line(&line, false, &tol);
+
+        match result {
+            Ok(points) => {
+                assert_eq!(points.len(), 1);
+                assert!(points[0].is_equal_to(&Point::new(0.0, 5.0, 0.0), &tol));
+            },
+            Err(e) => panic!("Expected a tangent point, but got error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn arc_intersect_with_line_endpoint() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI,
+        };
+        // Line passes through the start point of the arc (5, 0, 0)
+        let line = Line::new(Point::new(5.0, -5.0, 0.0), Point::new(5.0, 5.0, 0.0));
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_line(&line, false, &tol);
+
+        match result {
+            Ok(points) => {
+                assert_eq!(points.len(), 1);
+                assert!(points[0].is_equal_to(&Point::new(5.0, 0.0, 0.0), &tol));
+            },
+            Err(e) => panic!("Expected an intersection at the endpoint, but got error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn arc_intersect_with_line_extends() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI,
+        };
+        // The line segment does not cross the arc, but its extension does.
+        let line = Line::new(Point::new(6.0, 3.0, 0.0), Point::new(10.0, 3.0, 0.0));
+        let tol = Tolerance::default();
+
+        // Test with extends: false - should be no intersection
+        let result_no_extends = arc.intersect_with_line(&line, false, &tol);
+        assert!(result_no_extends.is_err());
+        assert_eq!(result_no_extends.unwrap_err(), BgcError::InvalidInput);
+
+        // Test with extends: true - should be two intersections
+        let result_extends = arc.intersect_with_line(&line, true, &tol);
+        match result_extends {
+            Ok(points) => {
+                 assert_eq!(points.len(), 2);
+                let p1 = Point::new(4.0, 3.0, 0.0);
+                let p2 = Point::new(-4.0, 3.0, 0.0);
+                assert!(points.iter().any(|p| p.is_equal_to(&p1, &tol)));
+                assert!(points.iter().any(|p| p.is_equal_to(&p2, &tol)));
+            },
+            Err(e) => panic!("Expected two intersection points with extend=true, but got error: {:?}", e),
         }
     }
 }
