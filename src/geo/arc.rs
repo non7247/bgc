@@ -235,7 +235,7 @@ impl Curve for Arc {
                 tol)?;
 
                 let local_points = self.intersect_with_line_in_local(&local_line, extends, tol)?;
-                let world_points = local_points.iter().map(|p| {
+                let world_points: Result<Vec<Point>, BgcError> = local_points.iter().map(|p| {
                     p.transform(
                         &Matrix3d::transform_to_world(
                             &self.center_point,
@@ -244,9 +244,9 @@ impl Curve for Arc {
                             tol
                         ),
                         tol
-                    ).unwrap()
+                    )
                 }).collect();
-                return Ok(world_points);
+                return world_points;
             }
         } else {
             let intersection = other.intersect_with_plane(&local_plane, extends, tol)?;
