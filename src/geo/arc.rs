@@ -249,8 +249,11 @@ impl Curve for Arc {
                 return world_points;
             }
         } else {
-            let intersection = other.intersect_with_plane(&local_plane, extends, tol)?;
-            dbg!(intersection);
+            let intersections = other.intersect_with_plane(&local_plane, extends, tol)?;
+            if intersections.is_empty() {
+                return Err(BgcError::InvalidInput);
+            }
+            let intersection = intersections[0];
             if self.contains(&intersection, extends, tol) {
                 return Ok(vec![intersection]);
             } else {
@@ -259,6 +262,88 @@ impl Curve for Arc {
         }
 
         Err(BgcError::InvalidInput)
+    }
+
+    fn intersect_with_plane(
+        &self,
+        other: &Plane,
+        extends: bool,
+        tol: &Tolerance
+    ) -> Result<Vec<Point>, BgcError> {
+        let z_axis = self.x_axis.outer_product(&self.y_axis);
+        let local_plane = Plane::from(&self.center_point, &z_axis, tol);
+
+        if local_plane.is_parallel_to(other, tol) {
+            return Err(BgcError::InvalidInput);
+        }
+
+        let intersection_line = match local_plane.intersect_with_plane(other, tol) {
+            Ok(line) => line,
+            Err(e) => return Err(e),
+        };
+
+        // Transform the intersection line to the arc's local coordinate system
+        let to_local_mat = Matrix3d::transform_to_local(
+            &self.center_point,
+            &self.x_axis,
+            &self.y_axis,
+            tol,
+        );
+        let local_line = intersection_line.transform(&to_local_mat, tol)?;
+
+        // Solve for the intersection of the local line and the circle equation x^2 + y^2 = r^2
+        let start = local_line.start_point;
+        let dir = local_line.direction(tol).normal(tol);
+
+        let a = dir.x * dir.x + dir.y * dir.y;
+        let b = 2.0 * (start.x * dir.x + start.y * dir.y);
+        let c = start.x * start.x + start.y * start.y - self.radius * self.radius;
+
+        let roots = match math::quadratic_equation(a, b, c, tol) {
+            Ok(roots) => roots,
+            Err(_) => {
+                // No real roots means no intersection
+                return Err(BgcError::InvalidInput);
+            }
+        };
+
+        // Calculate intersection points in the local coordinate system
+        let p1_local = local_line.point_at_dist(roots.0, true, tol)?;
+        let p2_local = local_line.point_at_dist(roots.1, true, tol)?;
+
+        let mut local_points = vec![p1_local];
+        if !p1_local.is_equal_to(&p2_local, tol) {
+            local_points.push(p2_local);
+        }
+
+        // Transform intersection points back to the world coordinate system
+        let to_world_mat = Matrix3d::transform_to_world(
+            &self.center_point,
+            &self.x_axis,
+            &self.y_axis,
+            tol,
+        );
+        let intersection_points: Result<Vec<Point>, BgcError> = local_points
+            .iter()
+            .map(|p| p.transform(&to_world_mat, tol))
+            .collect();
+        let intersection_points = intersection_points?;
+
+        if extends {
+            return Ok(intersection_points);
+        }
+
+        // Filter points to be within the arc's range
+        let valid_points: Vec<Point> = intersection_points
+            .into_iter()
+            .filter(|p| self.contains(p, false, tol))
+            .collect();
+
+        if valid_points.is_empty() {
+            Err(BgcError::InvalidInput)
+        } else {
+            Ok(valid_points)
+        }
     }
 }
 
@@ -480,6 +565,57 @@ mod tests  {
                 assert!(points.iter().any(|p| p.is_equal_to(&p2, &tol)));
             },
             Err(e) => panic!("Expected two intersection points with extend=true, but got error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn arc_intersect_with_plane_one_point() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI, // Semicircle
+        };
+        let plane = Plane::from(&Point::new(3.0, 0.0, 0.0), &Vector::new(1.0, 0.0, 0.0), &Tolerance::default());
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_plane(&plane, false, &tol);
+
+        match result {
+            Ok(points) => {
+                assert_eq!(points.len(), 1);
+                assert!(points[0].is_equal_to(&Point::new(3.0, 4.0, 0.0), &tol));
+            },
+            Err(e) => panic!("Expected one intersection point, but got error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn arc_intersect_with_plane_two_points() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0, // Full circle
+        };
+        let plane = Plane::from(&Point::new(0.0, 3.0, 0.0), &Vector::new(0.0, 1.0, 0.0), &Tolerance::default());
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_plane(&plane, false, &tol);
+
+        match result {
+            Ok(points) => {
+                assert_eq!(points.len(), 2);
+                let p1 = Point::new(4.0, 3.0, 0.0);
+                let p2 = Point::new(-4.0, 3.0, 0.0);
+                assert!(points.iter().any(|p| p.is_equal_to(&p1, &tol)));
+                assert!(points.iter().any(|p| p.is_equal_to(&p2, &tol)));
+            },
+            Err(e) => panic!("Expected two intersection points, but got error: {:?}", e),
         }
     }
 }

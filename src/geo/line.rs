@@ -145,51 +145,6 @@ impl Line {
         Ok(self.start_point + self.direction(tol) * distance)
     }
 
-    /// Calculates the intersection point the line makes with a plane.
-    ///
-    /// plane   Ax + By + Cz + D = 0
-    pub fn intersect_with_plane(
-        &self,
-        plane: &Plane,
-        extends: bool,
-        tol: &Tolerance
-    ) -> Result<Point, BgcError>
-    {
-        if plane.contains(&self.start_point, tol) {
-            dbg!("start point is on plane.");
-            return Ok(self.start_point);
-        }
-        if plane.contains(&self.end_point, tol) {
-            dbg!("end point is on plane.");
-            return Ok(self.end_point);
-        }
-
-        let v = self.start_point - self.end_point;
-
-        let denominator = plane.param_a * v.x + plane.param_b * v.y + plane.param_c * v.z;
-        if denominator.abs() < tol.calculation() {
-            return Err(BgcError::MustBeNonZero);
-        }
-
-        let numerator = plane.param_a * self.start_point.x
-            + plane.param_b * self.start_point.y
-            + plane.param_c * self.start_point.z
-            + plane.param_d;
-        let mut u = numerator / denominator;
-        if u.abs() < tol.calculation() {
-            u = 0.0;
-        }
-        dbg!(u);
-
-        let ipoint = self.start_point + (self.end_point - self.start_point) * u;
-
-        if !self.contains(&ipoint, extends, tol) {
-            return Err(BgcError::InvalidInput);
-        }
-
-        Ok(ipoint)
-    }
-
     /// Transforms this point to the coordinate system of the transformation matrix
     ///
     /// \[M\] * l = l'
@@ -221,8 +176,7 @@ impl Curve for Line {
         other: &Self,
         extends: bool,
         tol: &Tolerance
-    ) -> Result<Vec<Point>, BgcError>
-    {
+    ) -> Result<Vec<Point>, BgcError> {
         if self.start_point.is_equal_to(&other.start_point, tol) 
             || self.start_point.is_equal_to(&other.end_point, tol)
         {
@@ -263,6 +217,44 @@ impl Curve for Line {
         }
 
         Err(BgcError::InvalidInput)
+    }
+
+    fn intersect_with_plane(
+        &self,
+        plane: &Plane,
+        extends: bool,
+        tol: &Tolerance
+    ) -> Result<Vec<Point>, BgcError> {
+        if plane.contains(&self.start_point, tol) {
+            return Ok(vec![self.start_point]);
+        }
+        if plane.contains(&self.end_point, tol) {
+            return Ok(vec![self.end_point]);
+        }
+
+        let v = self.start_point - self.end_point;
+
+        let denominator = plane.param_a * v.x + plane.param_b * v.y + plane.param_c * v.z;
+        if denominator.abs() < tol.calculation() {
+            return Err(BgcError::MustBeNonZero);
+        }
+
+        let numerator = plane.param_a * self.start_point.x
+            + plane.param_b * self.start_point.y
+            + plane.param_c * self.start_point.z
+            + plane.param_d;
+        let mut u = numerator / denominator;
+        if u.abs() < tol.calculation() {
+            u = 0.0;
+        }
+
+        let ipoint = self.start_point + (self.end_point - self.start_point) * u;
+
+        if !self.contains(&ipoint, extends, tol) {
+            return Err(BgcError::InvalidInput);
+        }
+
+        Ok(vec![ipoint])
     }
 }
 
@@ -594,7 +586,7 @@ mod tests {
         let line = Line::new(Point::new(2.0, 2.0, 0.0), Point::new(6.0, 2.0, 0.0));
 
         if let Ok(ip) = line.intersect_with_plane(&plane, false, &Tolerance::default()) {
-            assert!(ip.is_equal_to(
+            assert!(ip[0].is_equal_to(
                 &Point::new(4.0, 2.0, 0.0),
                 &Tolerance::default()
             ), "intersection point is {:?}", ip);

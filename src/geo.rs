@@ -23,4 +23,11 @@ pub trait Curve {
         extends: bool,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError>;
+
+    fn intersect_with_plane(
+        &self,
+        plane: &Plane,
+        extends: bool,
+        tol: &Tolerance
+    ) -> Result<Vec<Point>, BgcError>;
 }
