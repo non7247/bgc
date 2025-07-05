@@ -191,18 +191,15 @@ impl Arc {
         let p2 = other.point_at_dist(roots.1, true, tol)?;
 
         let mut points = Vec::new();
-        if self.is_param_in_range(Arc::calc_angle_at_local_point(&p1), tol) {
-            if extends || other.contains(&p1, false, tol) {
-                points.push(p1);
-            }
+        if self.is_param_in_range(Arc::calc_angle_at_local_point(&p1), tol) &&
+                (extends || other.contains(&p1, false, tol)) {
+            points.push(p1);
         }
 
-        if !p1.is_equal_to(&p2, tol) {
-            if self.is_param_in_range(Arc::calc_angle_at_local_point(&p2), tol) {
-                if extends || other.contains(&p2, false, tol) {
-                    points.push(p2);
-                }
-            }
+        if !p1.is_equal_to(&p2, tol) &&
+                self.is_param_in_range(Arc::calc_angle_at_local_point(&p2), tol) &&
+                (extends || other.contains(&p2, false, tol)) {
+            points.push(p2);
         }
 
         if points.is_empty() {
@@ -277,10 +274,7 @@ impl Curve for Arc {
             return Err(BgcError::InvalidInput);
         }
 
-        let intersection_line = match local_plane.intersect_with_plane(other, tol) {
-            Ok(line) => line,
-            Err(e) => return Err(e),
-        };
+        let intersection_line = local_plane.intersect_with_plane(other, tol)?;
 
         // Transform the intersection line to the arc's local coordinate system
         let to_local_mat = Matrix3d::transform_to_local(
