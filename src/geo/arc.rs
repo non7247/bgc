@@ -34,13 +34,10 @@ impl Arc {
         let line1 = Line::new(mid1, mid1 + to_start.outer_product(&nrm_vec));
         let line2 = Line::new(mid2, mid2 + to_end.outer_product(&nrm_vec));
 
-        let ip = line1.intersect_with_line(&line2, true, tol);
-        let center = match ip {
-            Ok(ip) => ip[0],
-            Err(_) => {
-                return Err(BgcError::InvalidInput);
-            },
+        let Ok(ip) = line1.intersect_with_line(&line2, true, tol) else {
+            return Err(BgcError::InvalidInput);
         };
+        let center = ip[0];
 
         let radius = center.distance_to(on_arc);
         let x_axis = (start_point - center).normal(tol);
@@ -180,11 +177,8 @@ impl Arc {
         let b = 2.0 * (start.x * dir.x + start.y * dir.y);
         let c = start.x * start.x + start.y * start.y - self.radius * self.radius;
 
-        let roots = match math::quadratic_equation(a, b, c, tol) {
-            Ok(roots) => roots,
-            Err(_) => {
-                return Err(BgcError::InvalidInput);
-            }
+        let Ok(roots) = math::quadratic_equation(a, b, c, tol) else {
+            return Err(BgcError::InvalidInput);
         };
 
         let p1 = other.point_at_dist(roots.0, true, tol)?;
@@ -293,12 +287,9 @@ impl Curve for Arc {
         let b = 2.0 * (start.x * dir.x + start.y * dir.y);
         let c = start.x * start.x + start.y * start.y - self.radius * self.radius;
 
-        let roots = match math::quadratic_equation(a, b, c, tol) {
-            Ok(roots) => roots,
-            Err(_) => {
-                // No real roots means no intersection
-                return Err(BgcError::InvalidInput);
-            }
+        let Ok(roots) = math::quadratic_equation(a, b, c, tol) else {
+            // No real roots means no intersection
+            return Err(BgcError::InvalidInput);
         };
 
         // Calculate intersection points in the local coordinate system
@@ -354,11 +345,8 @@ mod tests  {
             &Tolerance::default()
         );
 
-        let arc = match arc {
-            Ok(arc) => arc,
-            Err(error) => {
-                panic!("error in arc_from: {:?}", error);
-            }
+        let Ok(arc) = arc else {
+            panic!("error in arc_from: {:?}", arc.unwrap_err());
         };
 
         assert!(arc.center_point.is_equal_to(
@@ -386,11 +374,8 @@ mod tests  {
             &Point::new(64213.475424, 3403.635799, 0.0),
             &Tolerance::default()
         );
-        let arc = match arc {
-            Ok(arc) => arc,
-            Err(error) => {
-                panic!("error in arc_is_on: {:?}", error);
-            }
+        let Ok(arc) = arc else {
+            panic!("error in arc_is_on: {:?}", arc.unwrap_err());
         };
 
         assert!(arc.contains(
@@ -408,29 +393,22 @@ mod tests  {
             &Point::new(4.7497, 7.9195, 0.0),
             &Tolerance::default()
         );
-        let arc = match arc {
-            Ok(arc) => arc,
-            Err(error) => {
-                panic!("error in arc_intersect_with_line: {:?}", error);
-            }
+        let Ok(arc) = arc else {
+            panic!("error in arc_intersect_with_line: {:?}", arc.unwrap_err());
         };
 
         let line = Line::new(Point::new(30.0, 20.0, 0.0), Point::new(-5.0, -10.0, 0.0));
 
         let p = arc.intersect_with_line(&line, false, &Tolerance::default());
 
-        match p {
-            Ok(points) => {
-                assert_eq!(points.len(), 1);
-                assert!(points[0].is_equal_to(
-                    &Point::new(16.9110, 8.7808, 0.0),
-                    &Tolerance::default()
-                ));
-            },
-            Err(error) => {
-                panic!("error in arc_intersect_with_line: {:?}", error);
-            },
-        }
+        let Ok(points) = p else {
+            panic!("error in arc_intersect_with_line: {:?}", p.unwrap_err());
+        };
+        assert_eq!(points.len(), 1);
+        assert!(points[0].is_equal_to(
+            &Point::new(16.9110, 8.7808, 0.0),
+            &Tolerance::default()
+        ));
     }
 
     #[test]
