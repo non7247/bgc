@@ -255,6 +255,15 @@ impl Curve for Arc {
         Err(BgcError::InvalidInput)
     }
 
+    fn intersect_with_arc(
+        &self,
+        other: &Arc,
+        extends: bool,
+        tol: &Tolerance
+    ) -> Result<Vec<Point>, BgcError> {
+        Err(BgcError::NotImplemented)
+    }
+
     fn intersect_with_plane(
         &self,
         other: &Plane,

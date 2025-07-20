@@ -219,30 +219,39 @@ impl Curve for Line {
         Err(BgcError::InvalidInput)
     }
 
-    fn intersect_with_plane(
+    fn intersect_with_arc(
         &self,
-        plane: &Plane,
+        other: &Arc,
         extends: bool,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        if plane.contains(&self.start_point, tol) {
+        Err(BgcError::NotImplemented)
+    }
+
+    fn intersect_with_plane(
+        &self,
+        other: &Plane,
+        extends: bool,
+        tol: &Tolerance
+    ) -> Result<Vec<Point>, BgcError> {
+        if other.contains(&self.start_point, tol) {
             return Ok(vec![self.start_point]);
         }
-        if plane.contains(&self.end_point, tol) {
+        if other.contains(&self.end_point, tol) {
             return Ok(vec![self.end_point]);
         }
 
         let v = self.start_point - self.end_point;
 
-        let denominator = plane.param_a * v.x + plane.param_b * v.y + plane.param_c * v.z;
+        let denominator = other.param_a * v.x + other.param_b * v.y + other.param_c * v.z;
         if denominator.abs() < tol.calculation() {
             return Err(BgcError::MustBeNonZero);
         }
 
-        let numerator = plane.param_a * self.start_point.x
-            + plane.param_b * self.start_point.y
-            + plane.param_c * self.start_point.z
-            + plane.param_d;
+        let numerator = other.param_a * self.start_point.x
+            + other.param_b * self.start_point.y
+            + other.param_c * self.start_point.z
+            + other.param_d;
         let mut u = numerator / denominator;
         if u.abs() < tol.calculation() {
             u = 0.0;
