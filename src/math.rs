@@ -48,13 +48,11 @@ mod tests {
         let tol = Tolerance::default();
 
         let r = quadratic_equation(1.0, -9.3, -262.3, &tol);
-        match r {
-            Ok((x1, x2)) => {
-                assert!((x1 - 21.50).abs() < 0.01);
-                assert!((x2 + 12.20).abs() < 0.01);
-            },
-            Err(err) => { panic!("error in test_quadratic_equation: {:?}", err); },
-        }
+        let Ok((x1, x2)) = r else {
+            panic!("error in test_quadratic_equation: {:?}", r.unwrap_err());
+        };
+        assert!((x1 - 21.50).abs() < 0.01);
+        assert!((x2 + 12.20).abs() < 0.01);
 
         let r = quadratic_equation(0.0, 2.0, 4.0, &tol);
         match r {
@@ -69,39 +67,31 @@ mod tests {
         }
 
         let r = quadratic_equation(12.3, 0.2, -10256.8, &tol);
-        match r {
-            Ok((x1, x2)) => {
-                assert!((x1 - 28.87).abs() < 0.01);
-                assert!((x2 + 28.89).abs() < 0.01);
-            },
-            Err(err) => { panic!("error in test_quadratic_equation: {:?}", err); },
-        }
+        let Ok((x1, x2)) = r else {
+            panic!("error in test_quadratic_equation: {:?}", r.unwrap_err());
+        };
+        assert!((x1 - 28.87).abs() < 0.01);
+        assert!((x2 + 28.89).abs() < 0.01);
 
         let r = quadratic_equation(739.84, -47474.88, 761605.29, &tol);
-        match r {
-            Ok((x1, x2)) => {
-                assert!((x1 - 32.085).abs() < 0.01);
-                assert!((x2 - 32.085).abs() < 0.01);
-            },
-            Err(err) => { panic!("error in test_quadratic_equation: {:?}", err); },
-        }
+        let Ok((x1, x2)) = r else {
+            panic!("error in test_quadratic_equation: {:?}", r.unwrap_err());
+        };
+        assert!((x1 - 32.085).abs() < 0.01);
+        assert!((x2 - 32.085).abs() < 0.01);
 
         let r = quadratic_equation(1.0, 0.0, 0.0, &tol);
-        match r {
-            Ok((x1, x2)) => {
-                assert!((x1 - 0.00).abs() < 0.01);
-                assert!((x2 - 0.00).abs() < 0.01);
-            },
-            Err(err) => { panic!("error in test_quadratic_equation: {:?}", err); },
-        }
+        let Ok((x1, x2)) = r else {
+            panic!("error in test_quadratic_equation: {:?}", r.unwrap_err());
+        };
+        assert!((x1 - 0.00).abs() < 0.01);
+        assert!((x2 - 0.00).abs() < 0.01);
 
         let r = quadratic_equation(0.2, 9987.6, -16.4, &tol);
-        match r {
-            Ok((x1, x2)) => {
-                assert!((x1 - 0.00).abs() < 0.01);
-                assert!((x2 + 49938.00).abs() < 0.01);
-            },
-            Err(err) => { panic!("error in test_quadratic_equation: {:?}", err); },
-        }
+        let Ok((x1, x2)) = r else {
+            panic!("error in test_quadratic_equation: {:?}", r.unwrap_err());
+        };
+        assert!((x1 - 0.00).abs() < 0.01);
+        assert!((x2 + 49938.00).abs() < 0.01);
     }
 }
