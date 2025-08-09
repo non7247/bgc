@@ -101,3 +101,38 @@ impl Tolerance {
         };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tolerance_setters() {
+        let mut tol = Tolerance::default();
+        let epsilon = 1.0e-9; // 比較用の微小な値
+
+        // 有効な値を設定するテスト
+        tol.set_equal_point(0.1);
+        assert!((tol.equal_point() - 0.1).abs() < epsilon);
+
+        // 無効な値（負の値）を設定するテスト
+        tol.set_equal_point(-0.1);
+        assert!((tol.equal_point() - DEFAULT_TOLERANCE_POINT).abs() < epsilon);
+
+        // 他も同様にテスト
+        tol.set_equal_vector(0.001);
+        assert!((tol.equal_vector() - 0.001).abs() < epsilon);
+        tol.set_equal_vector(-0.001);
+        assert!((tol.equal_vector() - DEFAULT_TOLERANCE_VECTOR).abs() < epsilon);
+
+        tol.set_convergnece(0.0001);
+        assert!((tol.convergence() - 0.0001).abs() < epsilon);
+        tol.set_convergnece(-0.0001);
+        assert!((tol.convergence() - DEFAULT_TOLERANCE_CONVERGENCE).abs() < epsilon);
+
+        tol.set_calculation(0.00001);
+        assert!((tol.calculation() - 0.00001).abs() < epsilon);
+        tol.set_calculation(-0.00001);
+        assert!((tol.calculation() - DEFAULT_TOLERANCE_CALCULATION).abs() < epsilon);
+    }
+}
