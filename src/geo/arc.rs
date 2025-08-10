@@ -134,6 +134,11 @@ impl Arc {
         }
     }
 
+    pub fn containing_plane(&self, tol: &Tolerance) -> Plane {
+        let z_axis = self.x_axis.outer_product(&self.y_axis);
+        Plane::from(&self.center_point, &z_axis, tol)
+    }
+
     fn calc_angle_at_local_point(p: &Point) -> f64 {
         let angle = p.y.atan2(p.x);
         if angle < 0.0 {
@@ -211,8 +216,7 @@ impl Curve for Arc {
         extends: bool,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        let z_axis = self.x_axis.outer_product(&self.y_axis);
-        let local_plane = Plane::from(&self.center_point, &z_axis, tol);
+        let local_plane = self.containing_plane(tol);
 
         if other.is_parallel_with_plane(&local_plane, tol) {
             if local_plane.contains(&other.start_point, tol) {
@@ -270,8 +274,7 @@ impl Curve for Arc {
         extends: bool,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        let z_axis = self.x_axis.outer_product(&self.y_axis);
-        let local_plane = Plane::from(&self.center_point, &z_axis, tol);
+        let local_plane = self.containing_plane(tol);
 
         if local_plane.is_parallel_to(other, tol) {
             return Err(BgcError::InvalidInput);
