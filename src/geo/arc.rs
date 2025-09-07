@@ -265,7 +265,18 @@ impl Curve for Arc {
         extends: bool,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        Err(BgcError::NotImplemented)
+        let local_plane = self.containing_plane(tol);
+        let other_plane = self.containing_plane(tol);
+
+        if local_plane.is_parallel_to(&other_plane, tol) {
+            if local_plane.is_coplanar_with(&other_plane, tol) {
+
+            }
+        } else {
+            return Err(BgcError::NotImplemented);
+        }
+
+        Err(BgcError::InvalidInput)
     }
 
     fn intersect_with_plane(
