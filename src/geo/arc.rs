@@ -1,5 +1,5 @@
 use super::*;
-use crate::{ BgcError, Tolerance, math };
+use crate::{ math::{self, quadratic_equation}, BgcError, Tolerance };
 
 #[derive(Debug)]
 pub struct Arc {
@@ -207,6 +207,44 @@ impl Arc {
             Ok(points)
         }
     }
+
+    fn intersect_with_circle_in_local(
+        &self,
+        other_center: &Point,
+        other_radius: f64,
+        tol: &Tolerance
+    ) -> Result<Vec<Point>, BgcError> {
+        if self.center_point.is_equal_to(other_center, tol) {
+            return Err(BgcError::InvalidInput);
+        } else if (self.center_point.x - other_center.x).abs() < tol.equal_point() {
+            let a = other_center.x;
+            let r1 = self.radius;
+            let r2 = other_radius;
+            let x = (a * a + r1 * r1 - r2 * r2) / (2.0 * a);
+
+            let y = (r1 * r1 - x * x).sqrt();
+            if y.abs() < tol.equal_point() {
+                return Ok(vec![Point::new(x, 0.0, 0.0)]);
+            } else {
+                return Ok(vec![Point::new(x, y, 0.0), Point::new(x, -y, 0.0)]);
+            }
+        } else if (self.center_point.y - other_center.y).abs() < tol.equal_point() {
+            let b = other_center.y;
+            let r1 = self.radius;
+            let r2 = other_radius;
+            let y = (b * b + r1 * r1 - r2 * r2) / (2.0 * b);
+
+            let x = (r1 * r1 - y * y).sqrt();
+            if x.abs() < tol.equal_point() {
+                return Ok(vec![Point::new(0.0, y, 0.0)]);
+            } else {
+                return Ok(vec![Point::new(x, y, 0.0), Point::new(-x, y, 0.0)]);
+            }
+        } else {
+            
+            Err(BgcError::InvalidInput)
+        }
+    }
 }
 
 impl Curve for Arc {
@@ -270,7 +308,14 @@ impl Curve for Arc {
 
         if local_plane.is_parallel_to(&other_plane, tol) {
             if local_plane.is_coplanar_with(&other_plane, tol) {
-
+                let local_center = other.center_point.transform(
+                    &&Matrix3d::transform_to_local(
+                        &self.center_point,
+                        &self.x_axis,
+                        &self.y_axis,
+                        tol
+                    ),
+                tol)?;
             }
         } else {
             return Err(BgcError::NotImplemented);
