@@ -241,8 +241,28 @@ impl Arc {
                 return Ok(vec![Point::new(x, y, 0.0), Point::new(-x, y, 0.0)]);
             }
         } else {
-            
-            Err(BgcError::InvalidInput)
+            let a = other_center.x;
+            let b = other_center.y;
+            let r1 = self.radius;
+            let r2 = other_radius;
+
+            let ld = a * a + b * b + r1 * r1 - r2 * r2;
+            let la = a * a / (b * b) + 1.0;
+            let lb = -(a * ld / (b * b));
+            let lc = ld * ld / (4.0 * b * b) - r1 * r1;
+
+            let Ok(roots) = math::quadratic_equation(la, lb, lc, tol) else {
+                return Err(BgcError::InvalidInput);
+            };
+
+            if (roots.0 - roots.1).abs() < tol.calculation() {
+                let y = (-2.0 * a * roots.0 + ld) / (2.0 * b);
+                return Ok(vec![Point::new(roots.0, y, 0.0)]);
+            } else {
+                let y1 = (-2.0 * a * roots.0 + ld) / (2.0 * b);
+                let y2 = (-2.0 * a * roots.1 + ld) / (2.0 * b);
+                return Ok(vec![Point::new(roots.0, y1, 0.0), Point::new(roots.1, y2, 0.0)]);
+            }
         }
     }
 }
