@@ -712,4 +712,131 @@ mod tests  {
             Err(e) => panic!("Expected two intersection points, but got error: {:?}", e),
         }
     }
+
+    #[test]
+    fn intersect_with_circle_in_local_two_points() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let other_center = Point::new(6.0, 0.0, 0.0);
+        let other_radius = 5.0;
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_circle_in_local(&other_center, other_radius, &tol);
+
+        match result {
+            Ok(points) => {
+                assert_eq!(points.len(), 2);
+                let p1 = Point::new(3.0, 4.0, 0.0);
+                let p2 = Point::new(3.0, -4.0, 0.0);
+                assert!(points.iter().any(|p| p.is_equal_to(&p1, &tol)));
+                assert!(points.iter().any(|p| p.is_equal_to(&p2, &tol)));
+            }
+            Err(e) => panic!("Expected two intersection points, but got error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn intersect_with_circle_in_local_one_point_tangent() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let other_center = Point::new(10.0, 0.0, 0.0);
+        let other_radius = 5.0;
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_circle_in_local(&other_center, other_radius, &tol);
+
+        match result {
+            Ok(points) => {
+                assert_eq!(points.len(), 1);
+                assert!(points[0].is_equal_to(&Point::new(5.0, 0.0, 0.0), &tol));
+            }
+            Err(e) => panic!("Expected one tangent point, but got error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn intersect_with_circle_in_local_no_intersection_apart() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let other_center = Point::new(11.0, 0.0, 0.0);
+        let other_radius = 5.0;
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_circle_in_local(&other_center, other_radius, &tol);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn intersect_with_circle_in_local_no_intersection_inside() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 10.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let other_center = Point::new(2.0, 0.0, 0.0);
+        let other_radius = 5.0;
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_circle_in_local(&other_center, other_radius, &tol);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn intersect_with_circle_in_local_concentric_error() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let other_center = Point::origin();
+        let other_radius = 10.0;
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_circle_in_local(&other_center, other_radius, &tol);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
+    }
+
+    #[test]
+    fn intersect_with_circle_in_local_coincident_error() {
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let other_center = Point::origin();
+        let other_radius = 5.0;
+        let tol = Tolerance::default();
+
+        let result = arc.intersect_with_circle_in_local(&other_center, other_radius, &tol);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
+    }
 }
