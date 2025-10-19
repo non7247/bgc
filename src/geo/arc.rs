@@ -216,10 +216,20 @@ impl Arc {
     ) -> Result<Vec<Point>, BgcError> {
         if self.center_point.is_equal_to(other_center, tol) {
             return Err(BgcError::InvalidInput);
-        } else if (self.center_point.x - other_center.x).abs() < tol.equal_point() {
+        }
+
+        let r1 = self.radius;
+        let r2 = other_radius;
+
+        let dist = self.center_point.distance_to(other_center);
+        if (dist - r1 - r2).abs() < tol.equal_point() {
+            return Err(BgcError::NotImplemented);
+        } else if dist - r1 - r2 > 0.0 {
+            return Err(BgcError::InvalidInput);
+        }
+
+        if (self.center_point.x - other_center.x).abs() < tol.equal_point() {
             let a = other_center.x;
-            let r1 = self.radius;
-            let r2 = other_radius;
             let x = (a * a + r1 * r1 - r2 * r2) / (2.0 * a);
 
             let y = (r1 * r1 - x * x).sqrt();
@@ -230,8 +240,6 @@ impl Arc {
             }
         } else if (self.center_point.y - other_center.y).abs() < tol.equal_point() {
             let b = other_center.y;
-            let r1 = self.radius;
-            let r2 = other_radius;
             let y = (b * b + r1 * r1 - r2 * r2) / (2.0 * b);
 
             let x = (r1 * r1 - y * y).sqrt();
@@ -243,8 +251,6 @@ impl Arc {
         } else {
             let a = other_center.x;
             let b = other_center.y;
-            let r1 = self.radius;
-            let r2 = other_radius;
 
             let ld = a * a + b * b + r1 * r1 - r2 * r2;
             let la = a * a / (b * b) + 1.0;
