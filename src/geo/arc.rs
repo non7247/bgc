@@ -222,10 +222,21 @@ impl Arc {
         let r2 = other_radius;
 
         let dist = self.center_point.distance_to(other_center);
-        if (dist - r1 - r2).abs() < tol.equal_point() {
+        if (dist - r1 - r2).abs() < tol.equal_point()
+                || (r1 - (dist + r2)).abs() < tol.equal_point()
+                || (r2 - (dist + r1)).abs() < tol.equal_point() {
+            // two circles are tangent
             return Err(BgcError::NotImplemented);
         } else if dist - r1 - r2 > 0.0 {
+            // two circles are completely separate
             return Err(BgcError::InvalidInput);
+        }
+
+        // check one circle is entirely contained within the other
+        if (r1 - r2).abs() > tol.equal_point() {
+            if (r1 > r2 && r1 > r2 + dist) || (r2 > r1 && r2 > r1 + dist) {
+                return Err(BgcError::InvalidInput);
+            }
         }
 
         if (self.center_point.x - other_center.x).abs() < tol.equal_point() {
