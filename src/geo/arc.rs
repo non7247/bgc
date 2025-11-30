@@ -220,13 +220,16 @@ impl Arc {
 
         let r1 = self.radius;
         let r2 = other_radius;
+        let other_dir = Vector::from(other_center).normal(tol);
 
         let dist = self.center_point.distance_to(other_center);
         if (dist - r1 - r2).abs() < tol.equal_point()
-                || (r1 - (dist + r2)).abs() < tol.equal_point()
-                || (r2 - (dist + r1)).abs() < tol.equal_point() {
+                || (r1 - (dist + r2)).abs() < tol.equal_point() {
             // two circles are tangent
-            return Err(BgcError::NotImplemented);
+            return Ok(vec![Point::origin() + other_dir * r1]);
+        } else if (r2 - (dist + r1)).abs() < tol.equal_point() {
+            // two circles are tangent
+            return Ok(vec![Point::origin() - other_dir * r1]);
         } else if dist - r1 - r2 > 0.0 {
             // two circles are completely separate
             return Err(BgcError::InvalidInput);
