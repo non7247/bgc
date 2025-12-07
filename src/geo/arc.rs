@@ -214,7 +214,7 @@ impl Arc {
         other_radius: f64,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        if self.center_point.is_equal_to(other_center, tol) {
+        if Point::origin().is_equal_to(other_center, tol) {
             return Err(BgcError::InvalidInput);
         }
 
@@ -222,7 +222,7 @@ impl Arc {
         let r2 = other_radius;
         let other_dir = Vector::from(other_center).normal(tol);
 
-        let dist = self.center_point.distance_to(other_center);
+        let dist = Point::origin().distance_to(other_center);
         if (dist - r1 - r2).abs() < tol.equal_point()
                 || (r1 - (dist + r2)).abs() < tol.equal_point() {
             // two circles are tangent
@@ -242,7 +242,7 @@ impl Arc {
             }
         }
 
-        if (self.center_point.x - other_center.x).abs() < tol.equal_point() {
+        if other_center.x.abs() < tol.equal_point() {
             let a = other_center.x;
             let x = (a * a + r1 * r1 - r2 * r2) / (2.0 * a);
 
@@ -252,7 +252,7 @@ impl Arc {
             } else {
                 return Ok(vec![Point::new(x, y, 0.0), Point::new(x, -y, 0.0)]);
             }
-        } else if (self.center_point.y - other_center.y).abs() < tol.equal_point() {
+        } else if other_center.y.abs() < tol.equal_point() {
             let b = other_center.y;
             let y = (b * b + r1 * r1 - r2 * r2) / (2.0 * b);
 
