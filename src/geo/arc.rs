@@ -214,61 +214,73 @@ impl Arc {
         other_radius: f64,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        if self.center_point.is_equal_to(other_center, tol) {
+        if Point::origin().is_equal_to(other_center, tol) {
             return Err(BgcError::InvalidInput);
         }
 
         let r1 = self.radius;
         let r2 = other_radius;
+        let other_dir = Vector::from(other_center).normal(tol);
 
-        let dist = self.center_point.distance_to(other_center);
-        if (dist - r1 - r2).abs() < tol.equal_point() {
-            return Err(BgcError::NotImplemented);
+        let dist = Point::origin().distance_to(other_center);
+        if (dist - r1 - r2).abs() < tol.equal_point()
+                || (r1 - (dist + r2)).abs() < tol.equal_point() {
+            // two circles are tangent
+            return Ok(vec![Point::origin() + other_dir * r1]);
+        } else if (r2 - (dist + r1)).abs() < tol.equal_point() {
+            // two circles are tangent
+            return Ok(vec![Point::origin() - other_dir * r1]);
         } else if dist - r1 - r2 > 0.0 {
+            // two circles are completely separate
             return Err(BgcError::InvalidInput);
         }
 
-        if (self.center_point.x - other_center.x).abs() < tol.equal_point() {
-            let a = other_center.x;
-            let x = (a * a + r1 * r1 - r2 * r2) / (2.0 * a);
-
-            let y = (r1 * r1 - x * x).sqrt();
-            if y.abs() < tol.equal_point() {
-                return Ok(vec![Point::new(x, 0.0, 0.0)]);
-            } else {
-                return Ok(vec![Point::new(x, y, 0.0), Point::new(x, -y, 0.0)]);
-            }
-        } else if (self.center_point.y - other_center.y).abs() < tol.equal_point() {
-            let b = other_center.y;
-            let y = (b * b + r1 * r1 - r2 * r2) / (2.0 * b);
-
-            let x = (r1 * r1 - y * y).sqrt();
-            if x.abs() < tol.equal_point() {
-                return Ok(vec![Point::new(0.0, y, 0.0)]);
-            } else {
-                return Ok(vec![Point::new(x, y, 0.0), Point::new(-x, y, 0.0)]);
-            }
-        } else {
-            let a = other_center.x;
-            let b = other_center.y;
-
-            let ld = a * a + b * b + r1 * r1 - r2 * r2;
-            let la = a * a / (b * b) + 1.0;
-            let lb = -(a * ld / (b * b));
-            let lc = ld * ld / (4.0 * b * b) - r1 * r1;
-
-            let Ok(roots) = math::quadratic_equation(la, lb, lc, tol) else {
+        // check one circle is entirely contained within the other
+        if (r1 - r2).abs() > tol.equal_point() {
+            if (r1 > r2 && r1 > r2 + dist) || (r2 > r1 && r2 > r1 + dist) {
                 return Err(BgcError::InvalidInput);
-            };
-
-            if (roots.0 - roots.1).abs() < tol.calculation() {
-                let y = (-2.0 * a * roots.0 + ld) / (2.0 * b);
-                return Ok(vec![Point::new(roots.0, y, 0.0)]);
-            } else {
-                let y1 = (-2.0 * a * roots.0 + ld) / (2.0 * b);
-                let y2 = (-2.0 * a * roots.1 + ld) / (2.0 * b);
-                return Ok(vec![Point::new(roots.0, y1, 0.0), Point::new(roots.1, y2, 0.0)]);
             }
+        }
+
+        let a = other_center.x;
+        let b = other_center.y;
+        let d = dist;
+
+        // Based on https://math.stackexchange.com/a/1367732
+        // We place the first circle at the origin and the second at (d, 0).
+        // x is the coordinate along the line connecting the centers.
+        let x = (r1 * r1 - r2 * r2 + d * d) / (2.0 * d);
+        
+        let y_sq = r1 * r1 - x * x;
+        if y_sq < 0.0 {
+            // This can happen with floating point inaccuracies even after the initial checks,
+            // or if the circles are separate. It implies no real intersection.
+            return Err(BgcError::InvalidInput);
+        }
+        let y = y_sq.sqrt();
+
+        // The intersection points in the rotated coordinate system are (x, y) and (x, -y).
+        // We need to rotate them back to the original local coordinate system.
+        // The rotation is defined by cos_theta = a / d and sin_theta = b / d.
+        // [x'] = [ cos -sin ] [x]
+        // [y'] = [ sin  cos ] [y]
+        // x_new = x*cos - y*sin = x*(a/d) - y*(b/d)
+        // y_new = x*sin + y*cos = x*(b/d) + y*(a/d)
+        
+        let p1_x = (x * a - y * b) / d;
+        let p1_y = (x * b + y * a) / d;
+        
+        if y.abs() < tol.calculation() {
+            // One intersection point (the circles are tangent and we already calculated the point)
+            return Ok(vec![Point::new(p1_x, p1_y, 0.0)]);
+        } else {
+            // Two distinct intersection points
+            let p2_x = (x * a + y * b) / d;
+            let p2_y = (x * b - y * a) / d;
+            return Ok(vec![
+                Point::new(p1_x, p1_y, 0.0),
+                Point::new(p2_x, p2_y, 0.0),
+            ]);
         }
     }
 }
