@@ -907,4 +907,175 @@ mod tests  {
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
     }
+
+    #[test]
+    fn arc_intersect_with_arc_tangent() {
+        let arc1 = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0, // Full circle
+        };
+        let arc2 = Arc {
+            center_point: Point::new(10.0, 0.0, 0.0),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0, // Full circle
+        };
+        let tol = Tolerance::default();
+
+        let result = arc1.intersect_with_arc(&arc2, false, &tol);
+
+        match result {
+            Ok(points) => {
+                assert_eq!(points.len(), 1);
+                assert!(points[0].is_equal_to(&Point::new(5.0, 0.0, 0.0), &tol));
+            },
+            Err(e) => panic!("Expected one tangent point, but got error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn arc_intersect_with_arc_no_intersection_apart() {
+        let arc1 = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let arc2 = Arc {
+            center_point: Point::new(11.0, 0.0, 0.0),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let tol = Tolerance::default();
+
+        let result = arc1.intersect_with_arc(&arc2, false, &tol);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn arc_intersect_with_arc_no_intersection_inside() {
+        let arc1 = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 10.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let arc2 = Arc {
+            center_point: Point::new(2.0, 0.0, 0.0),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let tol = Tolerance::default();
+
+        let result = arc1.intersect_with_arc(&arc2, false, &tol);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn arc_intersect_with_arc_non_coplanar() {
+        let tol = Tolerance::default();
+        // Arc1 on XY plane
+        let arc1 = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        // Arc2 on XZ plane
+        let arc2 = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::z_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+
+        let result = arc1.intersect_with_arc(&arc2, true, &tol);
+
+        match result {
+            Ok(points) => {
+                assert_eq!(points.len(), 2);
+                let p1 = Point::new(5.0, 0.0, 0.0);
+                let p2 = Point::new(-5.0, 0.0, 0.0);
+                assert!(points.iter().any(|p| p.is_equal_to(&p1, &tol)));
+                assert!(points.iter().any(|p| p.is_equal_to(&p2, &tol)));
+            },
+            Err(e) => panic!("Expected two intersection points, but got error: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn arc_intersect_with_arc_parallel_non_coplanar() {
+        let arc1 = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        // Same plane orientation, but shifted on Z axis
+        let arc2 = Arc {
+            center_point: Point::new(0.0, 0.0, 1.0),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        let tol = Tolerance::default();
+
+        let result = arc1.intersect_with_arc(&arc2, false, &tol);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
+    }
+
+    #[test]
+    fn arc_intersect_with_arc_not_in_range() {
+        // Two arcs on the same circle, but their segments don't overlap
+        let arc1 = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0, // 0 to 90 degrees
+            end_angle: std::f64::consts::PI / 2.0,
+        };
+        let arc2 = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: std::f64::consts::PI, // 180 to 270 degrees
+            end_angle: std::f64::consts::PI * 1.5,
+        };
+        let tol = Tolerance::default();
+
+        // With extends=false, should not intersect
+        let result = arc1.intersect_with_arc(&arc2, false, &tol);
+        assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
+
+        // With extends=true, it should still fail because they are coincident.
+        let result_extends = arc1.intersect_with_arc(&arc2, true, &tol);
+        assert_eq!(result_extends.unwrap_err(), BgcError::InvalidInput);
+    }
 }
