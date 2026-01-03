@@ -1,5 +1,5 @@
 use super::*;
-use crate::{ math::{self, quadratic_equation}, BgcError, Tolerance };
+use crate::{ math::{self}, BgcError, Tolerance };
 
 #[derive(Debug)]
 pub struct Arc {
@@ -236,10 +236,9 @@ impl Arc {
         }
 
         // check one circle is entirely contained within the other
-        if (r1 - r2).abs() > tol.equal_point() {
-            if (r1 > r2 && r1 > r2 + dist) || (r2 > r1 && r2 > r1 + dist) {
-                return Err(BgcError::InvalidInput);
-            }
+        if (r1 - r2).abs() > tol.equal_point() 
+                && ((r1 > r2 && r1 > r2 + dist) || (r2 > r1 && r2 > r1 + dist)) {
+            return Err(BgcError::InvalidInput);
         }
 
         let a = other_center.x;
@@ -272,15 +271,15 @@ impl Arc {
         
         if y.abs() < tol.calculation() {
             // One intersection point (the circles are tangent and we already calculated the point)
-            return Ok(vec![Point::new(p1_x, p1_y, 0.0)]);
+            Ok(vec![Point::new(p1_x, p1_y, 0.0)])
         } else {
             // Two distinct intersection points
             let p2_x = (x * a + y * b) / d;
             let p2_y = (x * b - y * a) / d;
-            return Ok(vec![
+            Ok(vec![
                 Point::new(p1_x, p1_y, 0.0),
                 Point::new(p2_x, p2_y, 0.0),
-            ]);
+            ])
         }
     }
 }
@@ -342,24 +341,75 @@ impl Curve for Arc {
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
         let local_plane = self.containing_plane(tol);
-        let other_plane = self.containing_plane(tol);
+        let other_plane = other.containing_plane(tol);
 
         if local_plane.is_parallel_to(&other_plane, tol) {
             if local_plane.is_coplanar_with(&other_plane, tol) {
-                let local_center = other.center_point.transform(
-                    &&Matrix3d::transform_to_local(
-                        &self.center_point,
-                        &self.x_axis,
-                        &self.y_axis,
-                        tol
-                    ),
-                tol)?;
+                // Co-planar case
+                let to_local = Matrix3d::transform_to_local(
+                    &self.center_point,
+                    &self.x_axis,
+                    &self.y_axis,
+                    tol
+                );
+                let local_other_center = other.center_point.transform(&to_local, tol)?;
+
+                let local_points = self.intersect_with_circle_in_local(
+                    &local_other_center,
+                    other.radius,
+                    tol
+                )?;
+
+                let to_world = Matrix3d::transform_to_world(
+                    &self.center_point,
+                    &self.x_axis,
+                    &self.y_axis,
+                    tol
+                );
+
+                let world_points: Vec<Point> = local_points
+                    .iter()
+                    .map(|p| p.transform(&to_world, tol))
+                    .collect::<Result<Vec<Point>, _>>()?;
+
+                let valid_points: Vec<Point> = world_points
+                    .into_iter()
+                    .filter(|p| {
+                        extends || self.contains(p, false, tol) && other.contains(p, false, tol)
+                    })
+                    .collect();
+                
+                if valid_points.is_empty() {
+                    return Err(BgcError::InvalidInput);
+                }
+                Ok(valid_points)
+            } else {
+                // Parallel, but not co-planar
+                Err(BgcError::InvalidInput)
             }
         } else {
-            return Err(BgcError::NotImplemented);
-        }
+            // Non-parallel planes intersect in a line.
+            // The intersection of two circles on non-parallel planes can be at most two points.
+            // These points lie on the intersection line of the two planes.
+            let intersection_line = local_plane.intersect_with_plane(&other_plane, tol)?;
 
-        Err(BgcError::InvalidInput)
+            // Find intersections of the first arc with the line
+            let self_intersections = self.intersect_with_line(&intersection_line, true, tol)?;
+
+            // Filter those points that also lie on the second arc
+            let valid_points: Vec<Point> = self_intersections
+                .into_iter()
+                .filter(|p| other.contains(p, true, tol))
+                .filter(|p| {
+                    extends || self.contains(p, false, tol) && other.contains(p, false, tol)
+                })
+                .collect();
+
+            if valid_points.is_empty() {
+                return Err(BgcError::InvalidInput);
+            }
+            Ok(valid_points)
+        }
     }
 
     fn intersect_with_plane(
