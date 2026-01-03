@@ -777,4 +777,30 @@ mod tests {
             Err(e) => panic!("Expected two intersection points with extend=true, but got error: {:?}", e),
         }
     }
+
+    #[test]
+    fn line_intersect_with_line_parallel() {
+        let l1 = Line::new(Point::new(0.0, 0.0, 0.0), Point::new(1.0, 0.0, 0.0));
+        let l2 = Line::new(Point::new(0.0, 1.0, 0.0), Point::new(1.0, 1.0, 0.0));
+        let tol = Tolerance::default();
+
+        let result = l1.intersect_with_line(&l2, true, &tol);
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::MustBeNonZero);
+    }
+
+    #[test]
+    fn line_intersect_with_line_coincident() {
+        let l1 = Line::new(Point::new(0.0, 0.0, 0.0), Point::new(2.0, 0.0, 0.0));
+        let l2 = Line::new(Point::new(1.0, 0.0, 0.0), Point::new(3.0, 0.0, 0.0));
+        let tol = Tolerance::default();
+
+        let result = l1.intersect_with_line(&l2, true, &tol);
+
+        // The current implementation treats coincident as parallel and returns an error.
+        // This test confirms that behavior.
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::MustBeNonZero);
+    }
 }
