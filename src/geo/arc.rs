@@ -100,10 +100,10 @@ impl Arc {
         let angle = Arc::calc_angle_at_local_point(&on_arc);
 
         if !extends && !self.is_param_in_range(angle, tol) {
-            let to_start = self.start_point().distance_to(&local_point);
-            let to_end = self.end_point().distance_to(&local_point);
+            let to_start = self.start_point().distance_to(point);
+            let to_end = self.end_point().distance_to(point);
 
-            if to_start < to_end {
+            if to_start - to_end <= tol.equal_point() {
                 Ok(self.start_point())
             } else {
                 Ok(self.end_point())
