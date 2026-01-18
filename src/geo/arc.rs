@@ -1080,6 +1080,44 @@ mod tests  {
     }
 
     #[test]
+    fn arc_closest_point() {
+        let tol = Tolerance::default();
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: std::f64::consts::FRAC_PI_4, // 45 degrees
+            end_angle: std::f64::consts::PI * 0.75,   // 135 degrees
+        };
+
+        // Case 1: Point is radially outward from a point on the arc.
+        let p1 = Point::new(0.0, 10.0, 0.0); // Directly above the arc's top point
+        let closest1 = arc.closest_point(&p1, false, &tol).unwrap();
+        assert!(closest1.is_equal_to(&Point::new(0.0, 5.0, 0.0), &tol));
+
+        // Case 2: Point is off the arc, extends=false, closer to end point.
+        let p2 = Point::new(-10.0, 0.0, 0.0);
+        let closest2 = arc.closest_point(&p2, false, &tol).unwrap();
+        assert!(closest2.is_equal_to(&arc.end_point(), &tol));
+
+        // Case 3: Point is off the arc, extends=false, closer to start point.
+        let p3 = Point::new(10.0, 0.0, 0.0);
+        let closest3 = arc.closest_point(&p3, false, &tol).unwrap();
+        assert!(closest3.is_equal_to(&arc.start_point(), &tol));
+
+        // Case 4: Point is off the arc, extends=true. Should project to the full circle.
+        let p4 = Point::new(10.0, 0.0, 0.0);
+        let closest4 = arc.closest_point(&p4, true, &tol).unwrap();
+        assert!(closest4.is_equal_to(&Point::new(5.0, 0.0, 0.0), &tol));
+
+        // Case 5: Point is the center of the arc. Should return the start point.
+        let p5 = arc.center_point;
+        let closest5 = arc.closest_point(&p5, false, &tol).unwrap();
+        assert!(closest5.is_equal_to(&arc.start_point(), &tol));
+    }
+
+    #[test]
     fn arc_intersect_with_line_non_coplanar() {
         let tol = Tolerance::default();
         // Arc on the XY plane
