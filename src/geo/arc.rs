@@ -1078,4 +1078,51 @@ mod tests  {
         let result_extends = arc1.intersect_with_arc(&arc2, true, &tol);
         assert_eq!(result_extends.unwrap_err(), BgcError::InvalidInput);
     }
+
+    #[test]
+    fn arc_intersect_with_line_non_coplanar() {
+        let tol = Tolerance::default();
+        // Arc on the XY plane
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI, // Semicircle in upper Y half
+        };
+
+        // Case 1: Line is parallel to the arc's plane, but not in it. Should not intersect.
+        let line1 = Line::new(Point::new(-10.0, 3.0, 1.0), Point::new(10.0, 3.0, 1.0));
+        let result1 = arc.intersect_with_line(&line1, false, &tol);
+        assert!(result1.is_err());
+        assert_eq!(result1.unwrap_err(), BgcError::InvalidInput);
+
+        // Case 2: Line pierces the plane at a point ON the arc.
+        let line2 = Line::new(Point::new(3.0, 4.0, -1.0), Point::new(3.0, 4.0, 1.0));
+        let result2 = arc.intersect_with_line(&line2, false, &tol);
+        match result2 {
+            Ok(points) => {
+                assert_eq!(points.len(), 1);
+                assert!(points[0].is_equal_to(&Point::new(3.0, 4.0, 0.0), &tol));
+            }
+            Err(e) => panic!("Expected one intersection point, but got error: {:?}", e),
+        }
+
+        // Case 3: Line pierces the plane at a point NOT on the arc (but on the circle).
+        let line3 = Line::new(Point::new(3.0, -4.0, -1.0), Point::new(3.0, -4.0, 1.0));
+        let result3 = arc.intersect_with_line(&line3, false, &tol);
+        assert!(result3.is_err());
+        assert_eq!(result3.unwrap_err(), BgcError::InvalidInput);
+
+        // Case 4: Same as Case 3, but with extends = true for the arc. Should intersect.
+        let result4 = arc.intersect_with_line(&line3, true, &tol);
+         match result4 {
+            Ok(points) => {
+                assert_eq!(points.len(), 1);
+                assert!(points[0].is_equal_to(&Point::new(3.0, -4.0, 0.0), &tol));
+            }
+            Err(e) => panic!("Expected one intersection point, but got error: {:?}", e),
+        }
+    }
 }
