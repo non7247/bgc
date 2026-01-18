@@ -803,4 +803,18 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), BgcError::MustBeNonZero);
     }
+
+    #[test]
+    fn line_intersect_with_line_skew() {
+        // Skew lines: not parallel and do not intersect
+        let l1 = Line::new(Point::new(0.0, 0.0, 0.0), Point::new(1.0, 0.0, 0.0)); // Along X-axis
+        let l2 = Line::new(Point::new(0.0, 1.0, 1.0), Point::new(0.0, 2.0, 1.0)); // Along Y-axis, but at z=1
+        let tol = Tolerance::default();
+
+        let result = l1.intersect_with_line(&l2, true, &tol);
+
+        // For skew lines, the points of closest approach are different, so it should fail.
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
+    }
 }
