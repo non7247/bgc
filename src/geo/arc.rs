@@ -523,6 +523,19 @@ mod tests  {
     }
 
     #[test]
+    fn arc_from_three_points_collinear_fail() {
+        // Three points on a line should fail to create an arc.
+        let start_point = Point::new(0.0, 0.0, 0.0);
+        let on_arc = Point::new(1.0, 0.0, 0.0);
+        let end_point = Point::new(2.0, 0.0, 0.0);
+
+        let result = Arc::from_three_points(&start_point, &end_point, &on_arc, &Tolerance::default());
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
+    }
+
+    #[test]
     fn arc_is_on() {
         let arc = Arc::from_three_points(
             &Point::new(45584.895199, 7078.244811, 0.0),
