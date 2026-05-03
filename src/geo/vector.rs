@@ -342,4 +342,91 @@ mod tests {
 
         assert!(lhs.is_equal_to(&Point::new(2.0, 4.0, 6.0), &tol));
     }
+
+    #[test]
+    fn vector_axes() {
+        let tol = Tolerance::default();
+
+        assert!(Vector::x_axis().is_equal_to(&Vector::new(1.0, 0.0, 0.0), &tol));
+        assert!(Vector::y_axis().is_equal_to(&Vector::new(0.0, 1.0, 0.0), &tol));
+        assert!(Vector::z_axis().is_equal_to(&Vector::new(0.0, 0.0, 1.0), &tol));
+    }
+
+    #[test]
+    fn vector_length() {
+        let v = Vector::new(3.0, 4.0, 0.0);
+        assert!((v.length() - 5.0).abs() < 1e-12);
+
+        let v = Vector::new(1.0, 1.0, 1.0);
+        assert!((v.length() - 3.0f64.sqrt()).abs() < 1e-12);
+
+        let v = Vector::new(0.0, 0.0, 0.0);
+        assert!(v.length() == 0.0);
+    }
+
+    #[test]
+    fn vector_scalar_multiplication() {
+        let tol = Tolerance::default();
+        let v = Vector::new(1.0, 2.0, 3.0);
+        
+        let result = v * 2.0;
+        assert!(result.is_equal_to(&Vector::new(2.0, 4.0, 6.0), &tol));
+
+        let mut v = Vector::new(1.0, 2.0, 3.0);
+        v *= 0.5;
+        assert!(v.is_equal_to(&Vector::new(0.5, 1.0, 1.5), &tol));
+    }
+
+    #[test]
+    fn vector_normal() {
+        let tol = Tolerance::default();
+        
+        let v = Vector::new(3.0, 0.0, 0.0);
+        let n = v.normal(&tol);
+        assert!(n.is_equal_to(&Vector::new(1.0, 0.0, 0.0), &tol));
+        assert!((n.length() - 1.0).abs() < 1e-12);
+
+        let v = Vector::new(0.0, 0.0, 0.0);
+        let n = v.normal(&tol);
+        assert!(n.is_equal_to(&Vector::new(0.0, 0.0, 0.0), &tol));
+    }
+
+    #[test]
+    fn vector_products() {
+        let tol = Tolerance::default();
+        
+        let v1 = Vector::new(1.0, 2.0, 3.0);
+        let v2 = Vector::new(4.0, 5.0, 6.0);
+
+        // Inner product: 1*4 + 2*5 + 3*6 = 4 + 10 + 18 = 32
+        assert!((v1.inner_product(&v2) - 32.0).abs() < 1e-12);
+
+        // Outer product: (2*6-3*5, 3*4-1*6, 1*5-2*4) = (12-15, 12-6, 5-8) = (-3, 6, -3)
+        let op = v1.outer_product(&v2);
+        assert!(op.is_equal_to(&Vector::new(-3.0, 6.0, -3.0), &tol));
+
+        // Orthogonality check
+        assert!(v1.inner_product(&op).abs() < 1e-12);
+        assert!(v2.inner_product(&op).abs() < 1e-12);
+    }
+
+    #[test]
+    fn vector_angle_xy() {
+        let tol = Tolerance::default();
+
+        let v = Vector::new(1.0, 0.0, 0.0);
+        assert!((v.angle_xy(&tol) - 0.0).abs() < 1e-12);
+
+        let v = Vector::new(0.0, 1.0, 0.0);
+        assert!((v.angle_xy(&tol) - std::f64::consts::PI / 2.0).abs() < 1e-12);
+
+        let v = Vector::new(-1.0, 0.0, 0.0);
+        assert!((v.angle_xy(&tol) - std::f64::consts::PI).abs() < 1e-12);
+
+        let v = Vector::new(0.0, -1.0, 0.0);
+        assert!((v.angle_xy(&tol) - std::f64::consts::PI * 1.5).abs() < 1e-12);
+
+        let v = Vector::new(0.0, 0.0, 1.0);
+        assert!(v.angle_xy(&tol) == 0.0);
+    }
 }
