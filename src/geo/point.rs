@@ -287,4 +287,45 @@ mod tests {
             },
         }
     }
+
+    #[test]
+    fn point_origin() {
+        let tol = Tolerance::default();
+        let p = Point::origin();
+        assert!(p.is_equal_to(&Point::new(0.0, 0.0, 0.0), &tol));
+    }
+
+    #[test]
+    fn point_distance_to() {
+        let p1 = Point::new(1.0, 2.0, 3.0);
+        let p2 = Point::new(4.0, 6.0, 3.0);
+        assert!((p1.distance_to(&p2) - 5.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn point_calc_middle_point() {
+        let tol = Tolerance::default();
+        let p1 = Point::new(1.0, 2.0, 3.0);
+        let p2 = Point::new(3.0, 4.0, 5.0);
+        let mid = p1.calc_middle_point(&p2);
+        assert!(mid.is_equal_to(&Point::new(2.0, 3.0, 4.0), &tol));
+    }
+
+    #[test]
+    fn point_transform_error() {
+        let p = Point::new(1.0, 1.0, 1.0);
+        let mut mat = Matrix3d::new();
+        // Set all row 3 to 0.0 (identity usually has 1.0 at [3,3])
+        mat.set(3, 0, 0.0);
+        mat.set(3, 1, 0.0);
+        mat.set(3, 2, 0.0);
+        mat.set(3, 3, 0.0);
+
+        let result = p.transform(&mat, &Tolerance::default());
+        assert!(result.is_err());
+        match result {
+            Err(BgcError::MustBeNonZero) => {},
+            _ => panic!("Expected MustBeNonZero error"),
+        }
+    }
 }
