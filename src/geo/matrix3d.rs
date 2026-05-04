@@ -117,6 +117,99 @@ mod tests {
     use super::*;
 
     #[test]
+    fn matrix3d_identity() {
+        let mat = Matrix3d::identity();
+        assert_eq!(mat.get(0, 0), 1.0);
+        assert_eq!(mat.get(1, 1), 1.0);
+        assert_eq!(mat.get(2, 2), 1.0);
+        assert_eq!(mat.get(3, 3), 1.0);
+        assert_eq!(mat.get(0, 1), 0.0);
+        assert_eq!(mat.get(1, 0), 0.0);
+    }
+
+    #[test]
+    fn matrix3d_new() {
+        let mat = Matrix3d::new();
+        for i in 0..4 {
+            for j in 0..4 {
+                assert_eq!(mat.get(i, j), 0.0);
+            }
+        }
+    }
+
+    #[test]
+    fn matrix3d_get_set() {
+        let mut mat = Matrix3d::new();
+        mat.set(1, 2, 5.0);
+        assert_eq!(mat.get(1, 2), 5.0);
+    }
+
+    #[test]
+    fn matrix3d_multiply_by() {
+        let tol = Tolerance::default();
+        let mat1 = Matrix3d::identity();
+        let mut mat2 = Matrix3d::new();
+        for i in 0..4 {
+            for j in 0..4 {
+                mat2.set(i, j, (i * 4 + j) as f64);
+            }
+        }
+
+        let result = mat1.multiply_by(&mat2);
+        for i in 0..4 {
+            for j in 0..4 {
+                assert!((result.get(i, j) - (i * 4 + j) as f64).abs() < tol.calculation());
+            }
+        }
+
+        // Translation matrix * translation matrix
+        let mut t1 = Matrix3d::identity();
+        t1.set(0, 3, 10.0);
+        t1.set(1, 3, 20.0);
+        t1.set(2, 3, 30.0);
+
+        let mut t2 = Matrix3d::identity();
+        t2.set(0, 3, 5.0);
+        t2.set(1, 3, -5.0);
+        t2.set(2, 3, 0.0);
+
+        let result = t1.multiply_by(&t2);
+        assert!((result.get(0, 3) - 15.0).abs() < tol.calculation());
+        assert!((result.get(1, 3) - 15.0).abs() < tol.calculation());
+        assert!((result.get(2, 3) - 30.0).abs() < tol.calculation());
+    }
+
+    #[test]
+    fn matrix3d_scale_robustness() {
+        let tol = Tolerance::default();
+        
+        // 1. Large coordinates (1,000km range)
+        let origin = Point::new(1_000_000.0, 1_000_000.0, 1_000_000.0);
+        let uaxis = Vector::new(1.0, 0.0, 0.0);
+        let vaxis = Vector::new(0.0, 1.0, 0.0);
+        
+        let to_local = Matrix3d::transform_to_local(&origin, &uaxis, &vaxis, &tol);
+        
+        // Point P at a large coordinate
+        let p_world = Point::new(1_000_001.0, 1_000_000.5, 1_000_000.0);
+        let p_local = p_world.transform(&to_local, &tol).expect("Transformation failed");
+        
+        // In local coordinates, it should be (1.0, 0.5, 0.0)
+        assert!(p_local.is_equal_to(&Point::new(1.0, 0.5, 0.0), &tol));
+
+        // 2. Tiny coordinates and vectors
+        let origin_tiny = Point::new(1.0e-7, 1.0e-7, 1.0e-7);
+        let u_tiny = Vector::new(1.0, 1.0e-9, 0.0).normal(&tol); 
+        let v_tiny = Vector::new(-1.0e-9, 1.0, 0.0).normal(&tol);
+        
+        let to_world = Matrix3d::transform_to_world(&origin_tiny, &u_tiny, &v_tiny, &tol);
+        
+        // Local origin should transform back to world tiny origin
+        let p_back = Point::origin().transform(&to_world, &tol).expect("Transformation failed");
+        assert!(p_back.is_equal_to(&origin_tiny, &tol));
+    }
+
+    #[test]
     fn matrix3d_transform_to_local() {
         let tol = Tolerance::default();
 
