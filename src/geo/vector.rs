@@ -429,4 +429,30 @@ mod tests {
         let v = Vector::new(0.0, 0.0, 1.0);
         assert!(v.angle_xy(&tol) == 0.0);
     }
+
+    #[test]
+    fn vector_scale_robustness() {
+        let tol = Tolerance::default();
+
+        // 1. Large vectors (planetary scale)
+        let v1 = Vector::new(1.0e9, 0.0, 0.0);
+        let v2 = Vector::new(0.0, 1.0e9, 0.0);
+
+        assert!((v1.length() - 1.0e9).abs() < 1.0); // Absolute error might be large, but relative is small
+        assert!(v1.normal(&tol).is_equal_to(&Vector::new(1.0, 0.0, 0.0), &tol));
+        
+        // Inner product of perpendicular large vectors should be near zero
+        assert!(v1.inner_product(&v2).abs() < tol.calculation());
+        
+        // Outer product
+        let op = v1.outer_product(&v2);
+        assert!(op.is_equal_to(&Vector::new(0.0, 0.0, 1.0e18), &tol));
+
+        // 2. Tiny vectors (sub-atomic scale)
+        let v_tiny = Vector::new(1.0e-12, 1.0e-12, 1.0e-12);
+        // Normalizing a vector smaller than calculation tolerance should return zero vector
+        // (This depends on the implementation of normal())
+        let n_tiny = v_tiny.normal(&tol);
+        assert!(n_tiny.is_equal_to(&Vector::new(0.0, 0.0, 0.0), &tol));
+    }
 }

@@ -328,4 +328,26 @@ mod tests {
             _ => panic!("Expected MustBeNonZero error"),
         }
     }
+
+    #[test]
+    fn point_scale_robustness() {
+        let tol = Tolerance::default();
+
+        // 1. Large coordinates
+        let p1 = Point::new(1.0e12, 0.0, 0.0);
+        let p2 = Point::new(1.0e12 + 10.0, 0.0, 0.0);
+        
+        assert!((p1.distance_to(&p2) - 10.0).abs() < tol.calculation());
+        
+        let mid = p1.calc_middle_point(&p2);
+        assert!(mid.is_equal_to(&Point::new(1.0e12 + 5.0, 0.0, 0.0), &tol));
+
+        // 2. Tiny differences
+        let p3 = Point::new(0.0, 0.0, 0.0);
+        let p4 = Point::new(1.0e-12, 0.0, 0.0);
+        
+        // Distance is less than DEFAULT_TOLERANCE_POINT (1.0e-4)
+        assert!(p3.is_equal_to(&p4, &tol));
+        assert!((p3.distance_to(&p4) - 1.0e-12).abs() < 1.0e-15);
+    }
 }
