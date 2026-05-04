@@ -817,4 +817,63 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
     }
+
+    #[test]
+    fn line_near_parallel_intersection() {
+        let tol = Tolerance::default();
+        
+        // Line 1: along X-axis
+        let l1 = Line::new(Point::new(0.0, 0.0, 0.0), Point::new(100.0, 0.0, 0.0));
+        
+        // Line 2: slightly angled (0.0001 radians)
+        let angle: f64 = 0.0001;
+        let l2 = Line::new(
+            Point::new(0.0, 1.0, 0.0),
+            Point::new(100.0, 1.0 + 100.0 * angle.tan(), 0.0)
+        );
+
+        // They should intersect at a very distant point: y = 0 => 1 + x*tan(angle) = 0 => x = -1/tan(angle)
+        let result = l1.intersect_with(&l2, true, &tol);
+        match result {
+            Ok(points) => {
+                let expected_x = -1.0 / angle.tan();
+                assert!((points[0].x - expected_x).abs() < 1.0); // Allow some drift for very distant points
+                assert!(points[0].y.abs() < tol.calculation());
+            },
+            Err(e) => panic!("Near-parallel lines should intersect when extended: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn line_extreme_scale_robustness() {
+        let tol = Tolerance::default();
+
+        // 1. Large scale line (100,000km range - Earth scale)
+        let l_large = Line::new(
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(1.0e8, 1.0e8, 1.0e8)
+        );
+        let p_large = Point::new(1.0e8 + 1.0, 1.0e8 + 1.0, 1.0e8 + 1.0);
+        let closest = l_large.closest_point(&p_large, true, &tol);
+        
+        // At 10^8 scale, 1.0e-4 tolerance is still challenging for some operations,
+        // but closest_point should handle this well.
+        assert!(closest.is_equal_to(&p_large, &tol));
+
+        // 2. Extremely short line (near-zero length)
+        let l_short = Line::new(
+            Point::new(1.0, 1.0, 1.0),
+            Point::new(1.0 + 1.0e-12, 1.0, 1.0)
+        );
+        
+        // Direction should handle near-zero length (returns original vector in current implementation)
+        let dir = l_short.direction(&tol);
+        assert!(dir.is_equal_to(&Vector::new(1.0e-12, 0.0, 0.0), &tol));
+
+        // Closest point should still work (should snap to start/end or handle it)
+        let p_off = Point::new(1.5, 2.0, 1.0);
+        let closest_short = l_short.closest_point(&p_off, false, &tol);
+        // Should snap to end_point since it's the closest within the segment
+        assert!(closest_short.is_equal_to(&l_short.end_point, &tol));
+    }
 }
