@@ -1176,4 +1176,147 @@ mod tests  {
             Err(e) => panic!("Expected one intersection point, but got error: {:?}", e),
         }
     }
+
+    #[test]
+    fn arc_extreme_scale_large() {
+        let tol = Tolerance::default();
+        // Earth scale arc (radius 10^8)
+        let radius = 1.0e8;
+        let start = Point::new(radius, 0.0, 0.0);
+        let end = Point::new(0.0, radius, 0.0);
+        let on_arc = Point::new(radius * std::f64::consts::FRAC_PI_4.cos(), radius * std::f64::consts::FRAC_PI_4.sin(), 0.0);
+
+        let arc = Arc::from_three_points(&start, &end, &on_arc, &tol);
+        let Ok(arc) = arc else {
+            panic!("Failed to create large arc: {:?}", arc.unwrap_err());
+        };
+
+        // For extremely large scale (10^8), absolute precision limit of f64 operations
+        // means errors around ~0.02 can accumulate. We use a larger absolute tolerance (1.0).
+        assert!(arc.center_point.distance_to(&Point::origin()) < 1.0);
+        assert!((arc.radius - radius).abs() < 1.0);
+
+        // Test closest_point
+        let p_outside = Point::new(radius + 10.0, 0.0, 0.0);
+        let closest = arc.closest_point(&p_outside, false, &tol).unwrap();
+        assert!(closest.distance_to(&start) < 1.0);
+
+        // Test intersection with a line
+        let line = Line::new(Point::new(-radius, radius / 2.0, 0.0), Point::new(radius, radius / 2.0, 0.0));
+        let intersections = arc.intersect_with_line(&line, false, &tol).unwrap();
+        assert_eq!(intersections.len(), 1); // Should only have 1 in the [0, PI/2] arc range
+        let expected_x = (radius * radius - (radius / 2.0) * (radius / 2.0)).sqrt();
+        assert!(intersections[0].distance_to(&Point::new(expected_x, radius / 2.0, 0.0)) < 1.0);
+    }
+
+    #[test]
+    fn arc_extreme_scale_tiny() {
+        let mut tol = Tolerance::default();
+        // Tiny scale (radius 10^-8) - needs custom tighter tolerances
+        tol.set_equal_point(1.0e-11);
+        tol.set_equal_vector(1.0e-11);
+        tol.set_calculation(1.0e-11);
+
+        let radius = 1.0e-8;
+        let start = Point::new(radius, 0.0, 0.0);
+        let end = Point::new(0.0, radius, 0.0);
+        let on_arc = Point::new(radius * std::f64::consts::FRAC_PI_4.cos(), radius * std::f64::consts::FRAC_PI_4.sin(), 0.0);
+
+        let arc = Arc::from_three_points(&start, &end, &on_arc, &tol);
+        let Ok(arc) = arc else {
+            panic!("Failed to create tiny arc: {:?}", arc.unwrap_err());
+        };
+
+        assert!(arc.center_point.is_equal_to(&Point::origin(), &tol));
+        assert!((arc.radius - radius).abs() < tol.equal_point());
+
+        // Test closest_point
+        let p_outside = Point::new(radius + 1.0e-9, 0.0, 0.0);
+        let closest = arc.closest_point(&p_outside, false, &tol).unwrap();
+        assert!(closest.is_equal_to(&start, &tol));
+    }
+
+    #[test]
+    fn arc_very_distant_center() {
+        let tol = Tolerance::default();
+        // Center at 10^7
+        let center = Point::new(1.0e7, 1.0e7, 1.0e7);
+        let radius = 5.0;
+        let start = center + Vector::new(radius, 0.0, 0.0);
+        let end = center + Vector::new(0.0, radius, 0.0);
+        let on_arc = center + Vector::new(radius * std::f64::consts::FRAC_PI_4.cos(), radius * std::f64::consts::FRAC_PI_4.sin(), 0.0);
+
+        let arc = Arc::from_three_points(&start, &end, &on_arc, &tol);
+        let Ok(arc) = arc else {
+            panic!("Failed to create distant arc: {:?}", arc.unwrap_err());
+        };
+
+        assert!(arc.center_point.is_equal_to(&center, &tol));
+        assert!((arc.radius - radius).abs() < tol.equal_point());
+
+        // Test closest_point
+        let p_outside = start + Vector::new(1.0, 0.0, 0.0);
+        let closest = arc.closest_point(&p_outside, false, &tol).unwrap();
+        assert!(closest.is_equal_to(&start, &tol));
+    }
+
+    #[test]
+    fn arc_near_tangent_line_intersection() {
+        let tol = Tolerance::default();
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI,
+        };
+
+        // Line is slightly outside the circle by 1e-8 (tangent is y=5.0)
+        let line_outside = Line::new(Point::new(-10.0, 5.0 + 1.0e-8, 0.0), Point::new(10.0, 5.0 + 1.0e-8, 0.0));
+        
+        // Since 1e-8 is within tolerance, it should be detected as tangent and return 1 point (or 2 extremely close points merged)
+        let result = arc.intersect_with_line(&line_outside, false, &tol);
+        match result {
+            Ok(points) => {
+                assert!(points.len() == 1 || points.len() == 2);
+                for p in points {
+                    assert!((p.y - 5.0).abs() < tol.equal_point());
+                    assert!(p.x.abs() < 1.0e-3);
+                }
+            }
+            Err(e) => panic!("Expected tangent intersection for near-tangent line, got: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn arc_near_tangent_arc_intersection() {
+        let tol = Tolerance::default();
+        let arc1 = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+        // Center is at 10.0 + 1e-8, so they overlap by -1e-8.
+        let arc2 = Arc {
+            center_point: Point::new(10.0 + 1.0e-8, 0.0, 0.0),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI * 2.0,
+        };
+
+        let result = arc1.intersect_with_arc(&arc2, false, &tol);
+        match result {
+            Ok(points) => {
+                assert_eq!(points.len(), 1);
+                assert!(points[0].is_equal_to(&Point::new(5.0, 0.0, 0.0), &tol));
+            }
+            Err(e) => panic!("Expected tangent intersection for near-tangent arcs, got: {:?}", e),
+        }
+    }
 }
