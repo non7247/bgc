@@ -1319,4 +1319,82 @@ mod tests  {
             Err(e) => panic!("Expected tangent intersection for near-tangent arcs, got: {:?}", e),
         }
     }
+
+    #[test]
+    fn arc_intersect_with_plane_coplanar() {
+        let tol = Tolerance::default();
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI,
+        };
+        // Plane is z = 0
+        let plane = Plane { param_a: 0.0, param_b: 0.0, param_c: 1.0, param_d: 0.0 };
+
+        let result = arc.intersect_with_plane(&plane, false, &tol);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
+    }
+
+    #[test]
+    fn arc_intersect_with_plane_parallel() {
+        let tol = Tolerance::default();
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI,
+        };
+        // Plane is z = 10
+        let plane = Plane { param_a: 0.0, param_b: 0.0, param_c: 1.0, param_d: -10.0 };
+
+        let result = arc.intersect_with_plane(&plane, false, &tol);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
+    }
+
+    #[test]
+    fn arc_intersect_with_plane_tangent() {
+        let tol = Tolerance::default();
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 5.0,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI,
+        };
+        // Plane is y = 5
+        let plane = Plane { param_a: 0.0, param_b: 1.0, param_c: 0.0, param_d: -5.0 };
+
+        let result = arc.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result[0].is_equal_to(&Point::new(0.0, 5.0, 0.0), &tol));
+    }
+
+    #[test]
+    fn arc_intersect_with_plane_extreme_scale() {
+        let tol = Tolerance::default();
+        let arc = Arc {
+            center_point: Point::origin(),
+            x_axis: Vector::x_axis(),
+            y_axis: Vector::y_axis(),
+            radius: 1.0e8,
+            start_angle: 0.0,
+            end_angle: std::f64::consts::PI,
+        };
+        // Plane is x = 5e7
+        let plane = Plane { param_a: 1.0, param_b: 0.0, param_c: 0.0, param_d: -5.0e7 };
+
+        let result = arc.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(result.len(), 1);
+        // x = 5e7, y = sqrt(1e16 - 25e14) = sqrt(97.5e14) = 9.87421077650148...e7
+        let expected_y = (1.0e16_f64 - 25.0e14_f64).sqrt();
+        assert!(result[0].is_equal_to(&Point::new(5.0e7, expected_y, 0.0), &tol));
+    }
 }

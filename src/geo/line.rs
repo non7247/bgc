@@ -234,10 +234,16 @@ impl Curve for Line {
         extends: bool,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        if other.contains(&self.start_point, tol) {
+        let start_in = other.contains(&self.start_point, tol);
+        let end_in = other.contains(&self.end_point, tol);
+
+        if start_in && end_in {
+            return Err(BgcError::InvalidInput);
+        }
+        if start_in {
             return Ok(vec![self.start_point]);
         }
-        if other.contains(&self.end_point, tol) {
+        if end_in {
             return Ok(vec![self.end_point]);
         }
 
@@ -252,10 +258,7 @@ impl Curve for Line {
             + other.param_b * self.start_point.y
             + other.param_c * self.start_point.z
             + other.param_d;
-        let mut u = numerator / denominator;
-        if u.abs() < tol.calculation() {
-            u = 0.0;
-        }
+        let u = numerator / denominator;
 
         let ipoint = self.start_point + (self.end_point - self.start_point) * u;
 
@@ -875,5 +878,53 @@ mod tests {
         let closest_short = l_short.closest_point(&p_off, false, &tol);
         // Should snap to end_point since it's the closest within the segment
         assert!(closest_short.is_equal_to(&l_short.end_point, &tol));
+    }
+
+    #[test]
+    fn line_intersect_with_plane_coincident() {
+        let tol = Tolerance::default();
+        // Line lies entirely on x - y = 0 plane
+        let line = Line::new(Point::new(1.0, 1.0, 1.0), Point::new(2.0, 2.0, 2.0));
+        let plane = Plane { param_a: 1.0, param_b: -1.0, param_c: 0.0, param_d: 0.0 };
+
+        let result = line.intersect_with_plane(&plane, false, &tol);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
+    }
+
+    #[test]
+    fn line_intersect_with_plane_parallel() {
+        let tol = Tolerance::default();
+        // Line is parallel to x - y = 0 plane but offset by x += 1
+        let line = Line::new(Point::new(2.0, 1.0, 1.0), Point::new(3.0, 2.0, 2.0));
+        let plane = Plane { param_a: 1.0, param_b: -1.0, param_c: 0.0, param_d: 0.0 };
+
+        let result = line.intersect_with_plane(&plane, false, &tol);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), BgcError::MustBeNonZero);
+    }
+
+    #[test]
+    fn line_intersect_with_plane_touch_endpoint() {
+        let tol = Tolerance::default();
+        // Line starts on x - y = 0 plane at (1, 1, 1), but end is at (3, 2, 2) which is not on plane
+        let line = Line::new(Point::new(1.0, 1.0, 1.0), Point::new(3.0, 2.0, 2.0));
+        let plane = Plane { param_a: 1.0, param_b: -1.0, param_c: 0.0, param_d: 0.0 };
+
+        let result = line.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result[0].is_equal_to(&Point::new(1.0, 1.0, 1.0), &tol));
+    }
+
+    #[test]
+    fn line_intersect_with_plane_extreme_scale() {
+        let tol = Tolerance::default();
+        // Large scale line (10^8 units) intersecting x = 10.0 plane
+        let line = Line::new(Point::new(0.0, 0.0, 0.0), Point::new(1.0e8, 0.0, 0.0));
+        let plane = Plane { param_a: 1.0, param_b: 0.0, param_c: 0.0, param_d: -10.0 };
+
+        let result = line.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result[0].is_equal_to(&Point::new(10.0, 0.0, 0.0), &tol));
     }
 }
