@@ -4,6 +4,7 @@ mod matrix3d;
 mod line;
 mod arc;
 mod plane;
+mod nurbs;
 
 use crate::{ BgcError, Tolerance };
 
@@ -13,6 +14,7 @@ pub use matrix3d::Matrix3d as Matrix3d;
 
 pub use line::Line as Line;
 pub use arc::Arc as Arc;
+pub use nurbs::NurbsCurve as NurbsCurve;
 
 pub use plane::Plane as Plane;
 
