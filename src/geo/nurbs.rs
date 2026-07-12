@@ -91,16 +91,12 @@ impl NurbsCurve {
         if (u - low).abs() <= tol.calculation() {
             u = low;
         } else if (u - high).abs() <= tol.calculation() {
-            u = high;
+            //u = high;
+            return Ok(n);
         }
 
         if u < low || u > high {
             return Err(BgcError::OutOfRange);
-        }
-
-        // Special case for u == high
-        if (u - high).abs() <= tol.calculation() {
-            return Ok(n);
         }
 
         // Use Rust's standard slice::partition_point to find k such that knots[k] <= u < knots[k+1]
