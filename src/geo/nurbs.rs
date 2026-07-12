@@ -244,4 +244,37 @@ mod tests {
         let p_mid = curve.evaluate(0.5, &tol).unwrap();
         assert!(p_mid.is_equal_to(&Point::new(1.0, 1.0, 0.0), &tol));
     }
+
+    #[test]
+    fn test_nurbs_find_span() {
+        let tol = Tolerance::default();
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(1.0, 2.0, 0.0),
+            Point::new(2.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // knots[2] = 0.0 (low), knots[3] = 1.0 (high)
+        // degree = 2, n = 2.
+        
+        // Exact low boundary
+        assert_eq!(curve.find_span(0.0, &tol).unwrap(), 2);
+        // Near low boundary (within calculation tolerance)
+        assert_eq!(curve.find_span(-1e-12, &tol).unwrap(), 2);
+        
+        // Inside domain
+        assert_eq!(curve.find_span(0.5, &tol).unwrap(), 2);
+
+        // Exact high boundary (should return n = 2)
+        assert_eq!(curve.find_span(1.0, &tol).unwrap(), 2);
+        // Near high boundary (within calculation tolerance)
+        assert_eq!(curve.find_span(1.0 + 1e-12, &tol).unwrap(), 2);
+        
+        // Out of range (beyond tolerance)
+        assert!(curve.find_span(-1e-5, &tol).is_err());
+        assert!(curve.find_span(1.0 + 1e-5, &tol).is_err());
+    }
 }
