@@ -146,6 +146,17 @@ impl NurbsCurve {
 
         Ok(Point::new(d[p][0] / w, d[p][1] / w, d[p][2] / w))
     }
+
+    /// Returns the start point of the NURBS curve.
+    pub fn start_point(&self, tol: &Tolerance) -> Result<Point, BgcError> {
+        self.evaluate(self.knots[self.degree], tol)
+    }
+
+    /// Returns the end point of the NURBS curve.
+    pub fn end_point(&self, tol: &Tolerance) -> Result<Point, BgcError> {
+        let n = self.control_points.len() - 1;
+        self.evaluate(self.knots[n + 1], tol)
+    }
 }
 
 impl Curve for NurbsCurve {
@@ -234,10 +245,12 @@ mod tests {
         // Evaluate at u = 0.0 -> should be start point (0,0,0)
         let p_start = curve.evaluate(0.0, &tol).unwrap();
         assert!(p_start.is_equal_to(&Point::new(0.0, 0.0, 0.0), &tol));
+        assert!(curve.start_point(&tol).unwrap().is_equal_to(&Point::new(0.0, 0.0, 0.0), &tol));
 
         // Evaluate at u = 1.0 -> should be end point (2,0,0)
         let p_end = curve.evaluate(1.0, &tol).unwrap();
         assert!(p_end.is_equal_to(&Point::new(2.0, 0.0, 0.0), &tol));
+        assert!(curve.end_point(&tol).unwrap().is_equal_to(&Point::new(2.0, 0.0, 0.0), &tol));
 
         // Evaluate at u = 0.5 -> should be (1.0, 1.0, 0.0)
         // B(0.5) = 0.25*(0,0,0) + 0.5*(1,2,0) + 0.25*(2,0,0) = (1.0, 1.0, 0.0)
