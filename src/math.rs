@@ -39,6 +39,68 @@ pub fn quadratic_equation(a: f64, b: f64, c: f64, tol: &Tolerance) -> Result<(f6
     Ok((result1, result2))
 }
 
+/// Solves an equation using Newton's method.
+///
+/// $$
+/// x_{n} = x_{n-1} - \frac{f(x_{n-1})}{f'(x_{n-1})}
+/// $$
+///
+/// # Arguments
+///
+/// * `init_value` - The initial guess.
+/// * `max_iterations` - The maximum number of iterations.
+/// * `func` - The function to solve: $f(x)$.
+/// * `dfunc` - The derivative of the function: $f'(x)$.
+/// * `tol` - The tolerance configuration.
+///
+/// # Returns
+///
+/// * `Ok((result, func_value))` - The found root and the function value at the root.
+/// * `Err(BgcError::InvalidInput)` - If `max_iterations <= 0`.
+/// * `Err(BgcError::Deivergence)` - If the iteration count exceeds `max_iterations`.
+/// * `Err(BgcError::MustBeNonZero)` - If the derivative value is zero or too small.
+pub fn newton<F, DF>(
+    init_value: f64,
+    max_iterations: i32,
+    func: F,
+    dfunc: DF,
+    tol: &Tolerance,
+) -> Result<(f64, f64), BgcError>
+where
+    F: Fn(f64) -> f64,
+    DF: Fn(f64) -> f64,
+{
+    if max_iterations <= 0 {
+        return Err(BgcError::InvalidInput);
+    }
+
+    let mut pp = init_value;
+    
+    let fd = dfunc(init_value);
+    if fd.abs() <= tol.calculation() {
+        return Err(BgcError::MustBeNonZero);
+    }
+    let mut pn = pp - func(init_value) / fd;
+
+    let mut it = 0;
+    while (pp - pn).abs() > tol.convergence() {
+        pp = pn;
+        let fd = dfunc(pp);
+        if fd.abs() <= tol.calculation() {
+            return Err(BgcError::MustBeNonZero);
+        }
+        pn = pp - func(pp) / fd;
+
+        it += 1;
+        if it > max_iterations {
+            return Err(BgcError::Deivergence);
+        }
+    }
+
+    let val = func(pn);
+    Ok((pn, val))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -93,5 +155,34 @@ mod tests {
         };
         assert!((x1 - 0.00).abs() < 0.01);
         assert!((x2 + 49938.00).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_newton() {
+        let tol = Tolerance::default();
+
+        // Solve f(x) = x^2 - 4 = 0, root is 2.0 (and -2.0)
+        let func = |x: f64| x * x - 4.0;
+        let dfunc = |x: f64| 2.0 * x;
+
+        // Try from 3.0 -> should converge to 2.0
+        let r = newton(3.0, 100, func, dfunc, &tol);
+        let Ok((root, val)) = r else {
+            panic!("newton failed: {:?}", r.unwrap_err());
+        };
+        assert!((root - 2.0).abs() <= tol.convergence());
+        assert!(val.abs() <= tol.convergence());
+
+        // Try with 0 max iterations -> should fail with InvalidInput
+        let r_err1 = newton(3.0, 0, func, dfunc, &tol);
+        assert_eq!(r_err1.unwrap_err(), BgcError::InvalidInput);
+
+        // Try with too few iterations -> should fail with Deivergence
+        let r_err2 = newton(3.0, 1, func, dfunc, &tol);
+        assert_eq!(r_err2.unwrap_err(), BgcError::Deivergence);
+
+        // Try starting at 0.0 -> derivative is 0.0 -> should fail with MustBeNonZero
+        let r_err3 = newton(0.0, 100, func, dfunc, &tol);
+        assert_eq!(r_err3.unwrap_err(), BgcError::MustBeNonZero);
     }
 }
