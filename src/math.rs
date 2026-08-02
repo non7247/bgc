@@ -161,7 +161,7 @@ mod tests {
     fn test_newton() {
         let tol = Tolerance::default();
 
-        // Solve f(x) = x^2 - 4 = 0, root is 2.0 (and -2.0)
+        // 1. Basic quadratic: Solve f(x) = x^2 - 4 = 0, root is 2.0 (and -2.0)
         let func = |x: f64| x * x - 4.0;
         let dfunc = |x: f64| 2.0 * x;
 
@@ -173,6 +173,61 @@ mod tests {
         assert!((root - 2.0).abs() <= tol.convergence());
         assert!(val.abs() <= tol.convergence());
 
+        // Try from negative guess -> should converge to -2.0
+        let r_neg = newton(-3.0, 100, func, dfunc, &tol);
+        let Ok((root_neg, val_neg)) = r_neg else {
+            panic!("newton failed: {:?}", r_neg.unwrap_err());
+        };
+        assert!((root_neg - (-2.0)).abs() <= tol.convergence());
+        assert!(val_neg.abs() <= tol.convergence());
+
+        // 2. Trigonometric function: f(x) = sin(x) = 0. Root near 3.0 is pi (~3.14159265)
+        let sin_func = |x: f64| x.sin();
+        let cos_func = |x: f64| x.cos();
+        let r_trig = newton(3.0, 100, sin_func, cos_func, &tol);
+        let Ok((root_trig, val_trig)) = r_trig else {
+            panic!("newton trig failed: {:?}", r_trig.unwrap_err());
+        };
+        assert!((root_trig - std::f64::consts::PI).abs() <= tol.convergence());
+        assert!(val_trig.abs() <= tol.convergence());
+
+        // 3. Exponential function: f(x) = e^x - 2 = 0. Root is ln(2) (~0.693147)
+        let exp_func = |x: f64| x.exp() - 2.0;
+        let dexp_func = |x: f64| x.exp();
+        let r_exp = newton(1.0, 100, exp_func, dexp_func, &tol);
+        let Ok((root_exp, val_exp)) = r_exp else {
+            panic!("newton exp failed: {:?}", r_exp.unwrap_err());
+        };
+        assert!((root_exp - 2.0f64.ln()).abs() <= tol.convergence());
+        assert!(val_exp.abs() <= tol.convergence());
+
+        // 4. Large scales: f(x) = x - 1e6 = 0. Root is 1e6.
+        let large_func = |x: f64| x - 1_000_000.0;
+        let dlarge_func = |_x: f64| 1.0;
+        let r_large = newton(0.0, 100, large_func, dlarge_func, &tol);
+        let Ok((root_large, val_large)) = r_large else {
+            panic!("newton large failed: {:?}", r_large.unwrap_err());
+        };
+        assert!((root_large - 1_000_000.0).abs() <= tol.convergence());
+        assert!(val_large.abs() <= tol.convergence());
+
+        // 5. Small scales: f(x) = x - 1e-6 = 0. Root is 1e-6.
+        let small_func = |x: f64| x - 1e-6;
+        let dsmall_func = |_x: f64| 1.0;
+        let r_small = newton(0.0, 100, small_func, dsmall_func, &tol);
+        let Ok((root_small, val_small)) = r_small else {
+            panic!("newton small failed: {:?}", r_small.unwrap_err());
+        };
+        assert!((root_small - 1e-6).abs() <= tol.convergence());
+        assert!(val_small.abs() <= tol.convergence());
+
+        // 6. Divergence / No real root case: f(x) = x^2 + 1 = 0
+        let no_root_func = |x: f64| x * x + 1.0;
+        let dno_root_func = |x: f64| 2.0 * x;
+        let r_no_root = newton(2.0, 100, no_root_func, dno_root_func, &tol);
+        assert_eq!(r_no_root.unwrap_err(), BgcError::Deivergence);
+
+        // 7. Error condition checks
         // Try with 0 max iterations -> should fail with InvalidInput
         let r_err1 = newton(3.0, 0, func, dfunc, &tol);
         assert_eq!(r_err1.unwrap_err(), BgcError::InvalidInput);
