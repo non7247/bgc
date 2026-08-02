@@ -157,6 +157,21 @@ impl NurbsCurve {
         let n = self.control_points.len() - 1;
         self.evaluate(self.knots[n + 1], tol)
     }
+
+    /// Evaluates the curve and its derivatives up to `max_derivatives` order at parameter `u`.
+    ///
+    /// # Returns
+    /// - `Ok((Point, Vec<Vector>))` where:
+    ///   - The first element is the point on the curve (0-th derivative).
+    ///   - The second element is a vector containing the derivative vectors (1st, 2nd, etc.).
+    pub fn evaluate_derivatives(
+        &self,
+        u: f64,
+        max_derivatives: usize,
+        tol: &Tolerance,
+    ) -> Result<(Point, Vec<Vector>), BgcError> {
+        Err(BgcError::NotImplemented)
+    }
 }
 
 impl Curve for NurbsCurve {
@@ -289,5 +304,137 @@ mod tests {
         // Out of range (beyond tolerance)
         assert!(curve.find_span(-1e-5, &tol).is_err());
         assert!(curve.find_span(1.0 + 1e-5, &tol).is_err());
+    }
+
+    #[test]
+    fn test_nurbs_derivatives_line() {
+        let tol = Tolerance::default();
+        // A straight line: degree 1
+        // P0 = (0, 0, 0), P1 = (3, 4, 12)
+        let pts = vec![Point::new(0.0, 0.0, 0.0), Point::new(3.0, 4.0, 12.0)];
+        let weights = vec![1.0, 1.0];
+        let knots = vec![0.0, 0.0, 1.0, 1.0]; // degree 1
+
+        let curve = NurbsCurve::new(1, pts, weights, knots, &tol).unwrap();
+
+        // Evaluate at u = 0.4
+        // C(0.4) = (1.2, 1.6, 4.8)
+        // C'(0.4) = (3, 4, 12)
+        // C''(0.4) = (0, 0, 0)
+        let (pt, derivs) = curve.evaluate_derivatives(0.4, 2, &tol).unwrap();
+        assert!(pt.is_equal_to(&Point::new(1.2, 1.6, 4.8), &tol));
+        assert_eq!(derivs.len(), 2);
+        assert!(derivs[0].is_equal_to(&Vector::new(3.0, 4.0, 12.0), &tol));
+        assert!(derivs[1].is_equal_to(&Vector::new(0.0, 0.0, 0.0), &tol));
+    }
+
+    #[test]
+    fn test_nurbs_derivatives_bezier() {
+        let tol = Tolerance::default();
+        // Quadratic Bezier: C(u) = (1-u)^2 P0 + 2u(1-u) P1 + u^2 P2
+        // C'(u) = 2(1-u)(P1-P0) + 2u(P2-P1)
+        // C''(u) = 2(P2 - 2P1 + P0)
+        // Let P0 = (0,0,0), P1 = (1,2,0), P2 = (2,0,0)
+        // C(u) = (2u, 4u(1-u), 0)
+        // C'(u) = (2, 4 - 8u, 0)
+        // C''(u) = (0, -8, 0)
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(1.0, 2.0, 0.0),
+            Point::new(2.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Test at u = 0.0
+        let (p0, d0) = curve.evaluate_derivatives(0.0, 2, &tol).unwrap();
+        assert!(p0.is_equal_to(&Point::new(0.0, 0.0, 0.0), &tol));
+        assert!(d0[0].is_equal_to(&Vector::new(2.0, 4.0, 0.0), &tol));
+        assert!(d0[1].is_equal_to(&Vector::new(0.0, -8.0, 0.0), &tol));
+
+        // Test at u = 0.5
+        let (p5, d5) = curve.evaluate_derivatives(0.5, 2, &tol).unwrap();
+        assert!(p5.is_equal_to(&Point::new(1.0, 1.0, 0.0), &tol));
+        assert!(d5[0].is_equal_to(&Vector::new(2.0, 0.0, 0.0), &tol));
+        assert!(d5[1].is_equal_to(&Vector::new(0.0, -8.0, 0.0), &tol));
+
+        // Test at u = 1.0
+        let (p1, d1) = curve.evaluate_derivatives(1.0, 2, &tol).unwrap();
+        assert!(p1.is_equal_to(&Point::new(2.0, 0.0, 0.0), &tol));
+        assert!(d1[0].is_equal_to(&Vector::new(2.0, -4.0, 0.0), &tol));
+        assert!(d1[1].is_equal_to(&Vector::new(0.0, -8.0, 0.0), &tol));
+    }
+
+    #[test]
+    fn test_nurbs_derivatives_rational_circle() {
+        let tol = Tolerance::default();
+        // Quarter circle: R = 1.
+        // P0 = (1, 0, 0), P1 = (1, 1, 0), P2 = (0, 1, 0)
+        // w0 = 1, w1 = 1/sqrt(2), w2 = 1
+        let w1 = 1.0 / 2.0f64.sqrt();
+        let pts = vec![
+            Point::new(1.0, 0.0, 0.0),
+            Point::new(1.0, 1.0, 0.0),
+            Point::new(0.0, 1.0, 0.0),
+        ];
+        let weights = vec![1.0, w1, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Evaluate at u = 0.5.
+        // The point should be on the unit circle: x^2 + y^2 = 1.
+        // The tangent vector should be orthogonal to the radius vector.
+        let (p, d) = curve.evaluate_derivatives(0.5, 1, &tol).unwrap();
+        
+        let dist_from_origin = (p.x * p.x + p.y * p.y + p.z * p.z).sqrt();
+        assert!((dist_from_origin - 1.0).abs() <= tol.convergence());
+
+        let radius_vec = Vector::new(p.x, p.y, p.z);
+        let tangent = d[0];
+        let dot = radius_vec.x * tangent.x + radius_vec.y * tangent.y + radius_vec.z * tangent.z;
+        assert!(dot.abs() <= tol.convergence());
+    }
+
+    #[test]
+    fn test_nurbs_derivatives_numerical() {
+        let tol = Tolerance::default();
+        // A complex cubic NURBS curve
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(1.0, 3.0, -1.0),
+            Point::new(2.0, -1.0, 4.0),
+            Point::new(4.0, 2.0, 1.0),
+            Point::new(5.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.2, 0.8, 1.1, 0.9];
+        let knots = vec![0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(3, pts, weights, knots, &tol).unwrap();
+
+        // Compare analytic derivative with central differences at u = 0.3
+        let u = 0.3;
+        let (pt, d) = curve.evaluate_derivatives(u, 2, &tol).unwrap();
+
+        let h = 1e-6;
+        let pt_prev = curve.evaluate(u - h, &tol).unwrap();
+        let pt_next = curve.evaluate(u + h, &tol).unwrap();
+        
+        // C'(u) approx (C(u+h) - C(u-h)) / 2h
+        let fd_1_x = (pt_next.x - pt_prev.x) / (2.0 * h);
+        let fd_1_y = (pt_next.y - pt_prev.y) / (2.0 * h);
+        let fd_1_z = (pt_next.z - pt_prev.z) / (2.0 * h);
+        let fd_1 = Vector::new(fd_1_x, fd_1_y, fd_1_z);
+        let mut tol_fd1 = Tolerance::default();
+        tol_fd1.set_equal_vector(1e-5);
+        assert!(d[0].is_equal_to(&fd_1, &tol_fd1));
+
+        // C''(u) approx (C(u+h) - 2C(u) + C(u-h)) / h^2
+        let fd_2_x = (pt_next.x - 2.0 * pt.x + pt_prev.x) / (h * h);
+        let fd_2_y = (pt_next.y - 2.0 * pt.y + pt_prev.y) / (h * h);
+        let fd_2_z = (pt_next.z - 2.0 * pt.z + pt_prev.z) / (h * h);
+        let fd_2 = Vector::new(fd_2_x, fd_2_y, fd_2_z);
+        let mut tol_fd2 = Tolerance::default();
+        tol_fd2.set_equal_vector(1e-4);
+        assert!(d[1].is_equal_to(&fd_2, &tol_fd2));
     }
 }
