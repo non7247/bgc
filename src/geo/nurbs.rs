@@ -170,7 +170,207 @@ impl NurbsCurve {
         max_derivatives: usize,
         tol: &Tolerance,
     ) -> Result<(Point, Vec<Vector>), BgcError> {
-        Err(BgcError::NotImplemented)
+        let k = self.find_span(u, tol)?;
+        let p = self.degree;
+        // Clamp higher-order derivatives exceeding the degree, as they become zero
+        let n_ders = max_derivatives.min(p);
+        
+        // ------------------------------------------------------------------
+        // Step 1: Compute 0-th through n_ders-th derivatives of the B-Spline 
+        //         in homogeneous coordinates (4D)
+        // ------------------------------------------------------------------
+        // ders_4d[k][0..4] : (x*w, y*w, z*w, w) of the k-th derivative
+        let ders_4d = self.evaluate_ders_4d(k, u, n_ders)?;
+        
+        // ------------------------------------------------------------------
+        // Step 2: Apply the rational quotient rule to convert to 3D derivatives
+        // ------------------------------------------------------------------
+        // A[k] : k-th derivative of the numerator (x*w, y*w, z*w)
+        // w[k] : k-th derivative of the denominator (w)
+        // CK[k]: Resulting k-th derivative vector in 3D space (C^(k)(u))
+        let mut ck = vec![Vector::new(0.0, 0.0, 0.0); n_ders + 1];
+        
+        for k in 0..=n_ders {
+            // Extract A_k (3D Vector) and w_k (Scalar)
+            let a_k = Vector::new(ders_4d[k][0], ders_4d[k][1], ders_4d[k][2]);
+            
+            // Recursive term of quotient rule: sum_{i=1}^{k} binom(k, i) * w_i * C^(k-i)
+            let mut sum = Vector::new(0.0, 0.0, 0.0);
+            let mut binom = 1.0;    //nCr
+            for i in 1..=k {
+                binom = binom * (k - i + 1) as f64 / i as f64;
+                sum += ck[k - i] * (binom * ders_4d[i][3]);
+            }
+            
+            // Divide by w_0 (current weight) to get C^(k)
+            let w_0 = ders_4d[0][3];
+            if w_0.abs() <= tol.calculation() {
+                return Err(BgcError::MustBeNonZero);
+            }
+            
+            ck[k] = (a_k - sum) / w_0;
+        }
+        
+        // 0-th derivative is a Point (a point on the curve); 1st and higher are Vectors
+        // (derivative vectors)
+        let point = Point::new(ck[0].x, ck[0].y, ck[0].z);
+        let mut derivatives = Vec::with_capacity(max_derivatives);
+        
+        // Store derivatives from 1st to n_ders-th
+        for d in 1..=n_ders {
+            derivatives.push(ck[d]);
+        }
+        
+        // Fill remaining higher-order derivatives with zero vectors if max_derivatives > degree
+        for _ in (n_ders + 1)..=max_derivatives {
+            derivatives.push(Vector::new(0.0, 0.0, 0.0));
+        }
+        
+        Ok((point, derivatives))
+    }
+
+    /// Helper function: B-Spline derivative algorithm in homogeneous space (4D)
+    fn evaluate_ders_4d(
+        &self,
+        span: usize,
+        u: f64,
+        n_ders: usize,
+    ) -> Result<Vec<[f64; 4]>, BgcError> {
+        let p = self.degree;
+        let mut ders = vec![[0.0; 4]; n_ders + 1];
+        
+        // Table to compute derivatives of non-zero basis functions
+        // (Equivalent to The NURBS Book Alg A2.3)
+        // Efficiently evaluated using tables such as ndu, left, and right
+        let ndu = self.calc_basis_functions_derivatives(span, u, n_ders)?;
+        
+        for k in 0..=n_ders {
+            for j in 0..=p {
+                let idx = span - p + j;
+                let pt = self.control_points[idx];
+                let w = self.weights[idx];
+                let basis_der = ndu[k][j];
+                
+                ders[k][0] += basis_der * pt.x * w;
+                ders[k][1] += basis_der * pt.y * w;
+                ders[k][2] += basis_der * pt.z * w;
+                ders[k][3] += basis_der * w;
+            }
+        }
+        
+        Ok(ders)
+    }
+        
+    /// Calculates the B-Spline basis functions and their higher-order derivatives.
+    /// (Based on Algorithm A2.2 from The NURBS Book)
+    ///
+    /// # Returns
+    /// `ders[k][j]` : Value of the basis function corresponding to knot span `span - degree + j` 
+    ///                for the `k`-th derivative.
+    /// - `k` : 0 <= k <= n_ders
+    /// - `j` : 0 <= j <= degree
+    fn calc_basis_functions_derivatives(
+        &self,
+        span: usize,
+        u: f64,
+        n_ders: usize,
+    ) -> Result<Vec<Vec<f64>>, BgcError> {
+        let p = self.degree;
+        let n = n_ders.min(p);
+        
+        // 2D array storing results ders[k][j]
+        let mut ders = vec![vec![0.0; p + 1]; n_ders + 1];
+        
+        // Working table
+        // ndu[j][r] : Upper triangular table of basis functions N_{j,r}
+        let mut ndu = vec![vec![0.0; p + 1]; p + 1];
+        let mut left = vec![0.0; p + 1];
+        let mut right = vec![0.0; p + 1];
+        
+        ndu[0][0] = 1.0;
+        
+        // ------------------------------------------------------------------
+        // Step 1: Compute basis functions N_{i,p}(u) (Equivalent to Algorithm A2.1)
+        // ------------------------------------------------------------------
+        for j in 1..=p {
+            left[j] = u - self.knots[span + 1 - j];
+            right[j] = self.knots[span + j] - u;
+            let mut saved = 0.0;
+            
+            for r in 0..j {
+                // update ndu table
+                ndu[j][r] = right[r + 1] + left[j - r];
+                let temp = ndu[r][j - 1] / ndu[j][r];
+                
+                ndu[r][j] = saved + right[r + 1] * temp;
+                saved = left[j - r] * temp;
+            }
+            ndu[j][j] = saved;
+        }
+        
+        // Store 0-th derivative (i.e., the value of the basis function itself)
+        for j in 0..=p {
+            ders[0][j] = ndu[j][p];
+        }
+        
+        // ------------------------------------------------------------------
+        // Step 2: Compute derivatives (Algorithm A2.2)
+        // ------------------------------------------------------------------
+        // a[s1][s2] : Blending table for computing derivative coefficients
+        let mut a = vec![vec![0.0; p + 1]; 2];
+        
+        for j in 0..=p {
+            let mut s1 = 0;
+            let mut s2 = 1;
+            a[0][0] = 1.0;
+            
+            // Compute k-th derivatives in order
+            for k in 1..=n {
+                let mut d = 0.0;
+                let rk = j as isize - k as isize;
+                let pk = p as isize - k as isize;
+                
+                if j >= k {
+                    a[s2][0] = a[s1][0] / ndu[pk as usize + 1][rk as usize];
+                    d = a[s2][0] * ndu[rk as usize][pk as usize];
+                }
+                
+                let j1 = if rk >= -1 { 1 } else { -rk as usize};
+                let j2 = if (j as isize - 1) <= pk {
+                    k - 1    
+                } else {
+                    p - j
+                };
+                
+                for r in j1..=j2 {
+                    a[s2][r] = (a[s1][r] - a[s1][r - 1]) / ndu[pk as usize + 1][rk as usize + r];
+                    d += a[s2][k] * ndu[rk as usize + r][pk as usize];
+                }
+                
+                if j <= pk as usize {
+                    a[s2][k] = -a[s1][k - 1] / ndu[pk as usize + 1][j];
+                    d += a[s2][k] * ndu[j][pk as usize];
+                }
+                
+                ders[k][j] = d;
+                
+                // Swap s1 and s2 to reuse the table
+                std::mem::swap(&mut s1, &mut s2);
+            }
+        }
+        
+        // ------------------------------------------------------------------
+        // Step 3: Multiply by degree factor (factorial factor: p! / (p-k)!)
+        // ------------------------------------------------------------------
+        let mut r = p as f64;
+        for k in 1..=n {
+            for j in 0..=p {
+                ders[k][j] *= r;
+            }
+            r *= (p -k) as f64;
+        }
+        
+        Ok(ders)
     }
 }
 
