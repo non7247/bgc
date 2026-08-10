@@ -327,29 +327,26 @@ impl NurbsCurve {
             // Compute k-th derivatives in order
             for k in 1..=n {
                 let mut d = 0.0;
-                let rk = j as isize - k as isize;
-                let pk = p as isize - k as isize;
+                let pk = p - k;
                 
                 if j >= k {
-                    a[s2][0] = a[s1][0] / ndu[pk as usize + 1][rk as usize];
-                    d = a[s2][0] * ndu[rk as usize][pk as usize];
+                    let rk = j - k;
+                    a[s2][0] = a[s1][0] / ndu[pk + 1][rk];
+                    d = a[s2][0] * ndu[rk][pk];
                 }
-                
-                let j1 = if rk >= -1 { 1 } else { -rk as usize};
-                let j2 = if (j as isize - 1) <= pk {
-                    k - 1    
-                } else {
-                    p - j
-                };
+
+                let j1 = if j + 1 >= k { 1 } else { k - j };
+                let j2 = if j <= pk + 1 { k - 1 } else { p - 1 };                
                 
                 for r in j1..=j2 {
-                    a[s2][r] = (a[s1][r] - a[s1][r - 1]) / ndu[pk as usize + 1][rk as usize + r];
-                    d += a[s2][k] * ndu[rk as usize + r][pk as usize];
+                    let rk_plus_r = j + r - k;
+                    a[s2][r] = (a[s1][r] - a[s1][r - 1]) / ndu[pk + 1][rk_plus_r];
+                    d += a[s2][k] * ndu[rk_plus_r][pk];
                 }
                 
-                if j <= pk as usize {
-                    a[s2][k] = -a[s1][k - 1] / ndu[pk as usize + 1][j];
-                    d += a[s2][k] * ndu[j][pk as usize];
+                if j <= pk {
+                    a[s2][k] = -a[s1][k - 1] / ndu[pk + 1][j];
+                    d += a[s2][k] * ndu[j][pk];
                 }
                 
                 ders[k][j] = d;
