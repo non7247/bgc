@@ -134,6 +134,14 @@ impl ops::MulAssign<f64> for Vector {
     }
 }
 
+impl ops::DivAssign<f64> for Vector {
+    fn div_assign(&mut self, rhs: f64) {
+        self.x /= rhs;
+        self.y /= rhs;
+        self.z /= rhs;
+    }
+}
+
 impl ops::Add for Vector {
     type Output = Self;
 
@@ -211,6 +219,13 @@ impl ops::Mul<f64> for Vector {
 
     fn mul(self, m: f64) -> Self::Output {
         Self::new(self.x * m, self.y * m, self.z * m)
+    }
+}
+
+impl ops::Div<f64> for Vector {
+    type Output = Self;
+    fn div(self, rhs: f64) -> Self::Output {
+        Self::new(self.x / rhs, self.y / rhs, self.z / rhs)
     }
 }
 
