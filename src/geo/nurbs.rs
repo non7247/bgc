@@ -612,23 +612,26 @@ mod tests {
         let u = 0.3;
         let (pt, d) = curve.evaluate_derivatives(u, 2, &tol).unwrap();
 
-        let h = 1e-6;
-        let pt_prev = curve.evaluate(u - h, &tol).unwrap();
-        let pt_next = curve.evaluate(u + h, &tol).unwrap();
-        
-        // C'(u) approx (C(u+h) - C(u-h)) / 2h
-        let fd_1_x = (pt_next.x - pt_prev.x) / (2.0 * h);
-        let fd_1_y = (pt_next.y - pt_prev.y) / (2.0 * h);
-        let fd_1_z = (pt_next.z - pt_prev.z) / (2.0 * h);
+        // C'(u) approx (C(u+h1) - C(u-h1)) / 2h1
+        let h1 = 1e-6;
+        let pt_prev1 = curve.evaluate(u - h1, &tol).unwrap();
+        let pt_next1 = curve.evaluate(u + h1, &tol).unwrap();
+        let fd_1_x = (pt_next1.x - pt_prev1.x) / (2.0 * h1);
+        let fd_1_y = (pt_next1.y - pt_prev1.y) / (2.0 * h1);
+        let fd_1_z = (pt_next1.z - pt_prev1.z) / (2.0 * h1);
         let fd_1 = Vector::new(fd_1_x, fd_1_y, fd_1_z);
         let mut tol_fd1 = Tolerance::default();
         tol_fd1.set_equal_vector(1e-5);
         assert!(d[0].is_equal_to(&fd_1, &tol_fd1));
 
-        // C''(u) approx (C(u+h) - 2C(u) + C(u-h)) / h^2
-        let fd_2_x = (pt_next.x - 2.0 * pt.x + pt_prev.x) / (h * h);
-        let fd_2_y = (pt_next.y - 2.0 * pt.y + pt_prev.y) / (h * h);
-        let fd_2_z = (pt_next.z - 2.0 * pt.z + pt_prev.z) / (h * h);
+        // C''(u) approx (C(u+h2) - 2C(u) + C(u-h2)) / h2^2
+        // Optimal h for 2nd order central difference is O(eps^(1/4)) ~ 1e-4
+        let h2 = 1e-4;
+        let pt_prev2 = curve.evaluate(u - h2, &tol).unwrap();
+        let pt_next2 = curve.evaluate(u + h2, &tol).unwrap();
+        let fd_2_x = (pt_next2.x - 2.0 * pt.x + pt_prev2.x) / (h2 * h2);
+        let fd_2_y = (pt_next2.y - 2.0 * pt.y + pt_prev2.y) / (h2 * h2);
+        let fd_2_z = (pt_next2.z - 2.0 * pt.z + pt_prev2.z) / (h2 * h2);
         let fd_2 = Vector::new(fd_2_x, fd_2_y, fd_2_z);
         let mut tol_fd2 = Tolerance::default();
         tol_fd2.set_equal_vector(1e-4);
