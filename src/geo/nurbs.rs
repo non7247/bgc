@@ -336,12 +336,12 @@ impl NurbsCurve {
                 }
 
                 let j1 = if j + 1 >= k { 1 } else { k - j };
-                let j2 = if j <= pk + 1 { k - 1 } else { p - 1 };                
+                let j2 = if j <= pk + 1 { k - 1 } else { p - j };                
                 
                 for r in j1..=j2 {
                     let rk_plus_r = j + r - k;
                     a[s2][r] = (a[s1][r] - a[s1][r - 1]) / ndu[pk + 1][rk_plus_r];
-                    d += a[s2][k] * ndu[rk_plus_r][pk];
+                    d += a[s2][r] * ndu[rk_plus_r][pk];
                 }
                 
                 if j <= pk {
