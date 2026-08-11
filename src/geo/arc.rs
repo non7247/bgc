@@ -12,6 +12,83 @@ pub struct Arc {
 }
 
 impl Arc {
+    /// Creates a new `Arc` given center point, radius, start angle, end angle,
+    /// and plane normal vector.
+    pub fn new(
+        center_point: Point,
+        radius: f64,
+        start_angle: f64,
+        end_angle: f64,
+        normal: Vector,
+        tol: &Tolerance,
+    ) -> Result<Self, BgcError> {
+        if radius <= 0.0 {
+            return Err(BgcError::InvalidInput);
+        }
+
+        let n = normal.normal(tol);
+        if n.length() < tol.equal_vector() {
+            return Err(BgcError::InvalidInput);
+        }
+
+        let (x_axis, y_axis) = if n.is_parallel_to(&Vector::z_axis(), tol) {
+            let sign = if n.z >= 0.0 { 1.0 } else { -1.0 };
+            (Vector::x_axis() * sign, Vector::y_axis())
+        } else {
+            let y_axis = n.outer_product(&Vector::z_axis()).normal(tol);
+            let x_axis = y_axis.outer_product(&n).normal(tol);
+            (x_axis, y_axis)
+        };
+
+        Ok(Self {
+            center_point,
+            x_axis,
+            y_axis,
+            radius,
+            start_angle,
+            end_angle,
+        })
+    }
+
+    /// Creates an `Arc` from center point, start point, end point, and normal vector.
+    pub fn from_center_start_end(
+        center: &Point,
+        start: &Point,
+        end: &Point,
+        normal: &Vector,
+        tol: &Tolerance,
+    ) -> Result<Self, BgcError> {
+        let r_start = center.distance_to(start);
+        let r_end = center.distance_to(end);
+
+        if r_start < tol.equal_point() || (r_start - r_end).abs() > tol.equal_point() {
+            return Err(BgcError::InvalidInput);
+        }
+
+        let n = normal.normal(tol);
+        if n.length() < tol.equal_vector() {
+            return Err(BgcError::InvalidInput);
+        }
+
+        let x_axis = (start - center).normal(tol);
+        let y_axis = n.outer_product(&x_axis).normal(tol);
+
+        let local_end = end.transform(
+            &Matrix3d::transform_to_local(center, &x_axis, &y_axis, tol),
+            tol,
+        )?;
+        let end_angle = Arc::calc_angle_at_local_point(&local_end);
+
+        Ok(Self {
+            center_point: *center,
+            x_axis,
+            y_axis,
+            radius: r_start,
+            start_angle: 0.0,
+            end_angle,
+        })
+    }
+
     /// Makes an arc from three points.
     pub fn from_three_points(
         start_point: &Point,
@@ -136,7 +213,7 @@ impl Arc {
 
     pub fn containing_plane(&self, tol: &Tolerance) -> Plane {
         let z_axis = self.x_axis.outer_product(&self.y_axis);
-        Plane::from(&self.center_point, &z_axis, tol)
+        Plane::from_point_and_normal(&self.center_point, &z_axis, tol)
     }
 
     fn calc_angle_at_local_point(p: &Point) -> f64 {
@@ -529,7 +606,12 @@ mod tests  {
         let on_arc = Point::new(1.0, 0.0, 0.0);
         let end_point = Point::new(2.0, 0.0, 0.0);
 
-        let result = Arc::from_three_points(&start_point, &end_point, &on_arc, &Tolerance::default());
+        let result = Arc::from_three_points(
+            &start_point,
+            &end_point,
+            &on_arc,
+            &Tolerance::default()
+        );
 
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), BgcError::InvalidInput);
@@ -705,7 +787,10 @@ mod tests  {
                 assert!(points.iter().any(|p| p.is_equal_to(&p1, &tol)));
                 assert!(points.iter().any(|p| p.is_equal_to(&p2, &tol)));
             },
-            Err(e) => panic!("Expected two intersection points with extend=true, but got error: {:?}", e),
+            Err(e) => panic!(
+                "Expected two intersection points with extend=true, but got error: {:?}",
+                e
+            ),
         }
     }
 
@@ -719,7 +804,11 @@ mod tests  {
             start_angle: 0.0,
             end_angle: std::f64::consts::PI, // Semicircle
         };
-        let plane = Plane::from(&Point::new(3.0, 0.0, 0.0), &Vector::new(1.0, 0.0, 0.0), &Tolerance::default());
+        let plane = Plane::from_point_and_normal(
+            &Point::new(3.0, 0.0, 0.0), 
+            &Vector::new(1.0, 0.0, 0.0), 
+            &Tolerance::default()
+        );
         let tol = Tolerance::default();
 
         let result = arc.intersect_with_plane(&plane, false, &tol);
@@ -743,7 +832,11 @@ mod tests  {
             start_angle: 0.0,
             end_angle: std::f64::consts::PI * 2.0, // Full circle
         };
-        let plane = Plane::from(&Point::new(0.0, 3.0, 0.0), &Vector::new(0.0, 1.0, 0.0), &Tolerance::default());
+        let plane = Plane::from_point_and_normal(
+            &Point::new(0.0, 3.0, 0.0), 
+            &Vector::new(0.0, 1.0, 0.0), 
+            &Tolerance::default()
+        );
         let tol = Tolerance::default();
 
         let result = arc.intersect_with_plane(&plane, false, &tol);
@@ -1184,7 +1277,11 @@ mod tests  {
         let radius = 1.0e8;
         let start = Point::new(radius, 0.0, 0.0);
         let end = Point::new(0.0, radius, 0.0);
-        let on_arc = Point::new(radius * std::f64::consts::FRAC_PI_4.cos(), radius * std::f64::consts::FRAC_PI_4.sin(), 0.0);
+        let on_arc = Point::new(
+            radius * std::f64::consts::FRAC_PI_4.cos(), 
+            radius * std::f64::consts::FRAC_PI_4.sin(), 
+            0.0
+        );
 
         let arc = Arc::from_three_points(&start, &end, &on_arc, &tol);
         let Ok(arc) = arc else {
@@ -1202,7 +1299,10 @@ mod tests  {
         assert!(closest.distance_to(&start) < 1.0);
 
         // Test intersection with a line
-        let line = Line::new(Point::new(-radius, radius / 2.0, 0.0), Point::new(radius, radius / 2.0, 0.0));
+        let line = Line::new(
+            Point::new(-radius, radius / 2.0, 0.0), 
+            Point::new(radius, radius / 2.0, 0.0)
+        );
         let intersections = arc.intersect_with_line(&line, false, &tol).unwrap();
         assert_eq!(intersections.len(), 1); // Should only have 1 in the [0, PI/2] arc range
         let expected_x = (radius * radius - (radius / 2.0) * (radius / 2.0)).sqrt();
@@ -1220,7 +1320,11 @@ mod tests  {
         let radius = 1.0e-8;
         let start = Point::new(radius, 0.0, 0.0);
         let end = Point::new(0.0, radius, 0.0);
-        let on_arc = Point::new(radius * std::f64::consts::FRAC_PI_4.cos(), radius * std::f64::consts::FRAC_PI_4.sin(), 0.0);
+        let on_arc = Point::new(
+            radius * std::f64::consts::FRAC_PI_4.cos(), 
+            radius * std::f64::consts::FRAC_PI_4.sin(), 
+            0.0
+        );
 
         let arc = Arc::from_three_points(&start, &end, &on_arc, &tol);
         let Ok(arc) = arc else {
@@ -1244,7 +1348,11 @@ mod tests  {
         let radius = 5.0;
         let start = center + Vector::new(radius, 0.0, 0.0);
         let end = center + Vector::new(0.0, radius, 0.0);
-        let on_arc = center + Vector::new(radius * std::f64::consts::FRAC_PI_4.cos(), radius * std::f64::consts::FRAC_PI_4.sin(), 0.0);
+        let on_arc = center + Vector::new(
+            radius * std::f64::consts::FRAC_PI_4.cos(), 
+            radius * std::f64::consts::FRAC_PI_4.sin(), 
+            0.0
+        );
 
         let arc = Arc::from_three_points(&start, &end, &on_arc, &tol);
         let Ok(arc) = arc else {
@@ -1273,9 +1381,13 @@ mod tests  {
         };
 
         // Line is slightly outside the circle by 1e-8 (tangent is y=5.0)
-        let line_outside = Line::new(Point::new(-10.0, 5.0 + 1.0e-8, 0.0), Point::new(10.0, 5.0 + 1.0e-8, 0.0));
+        let line_outside = Line::new(
+            Point::new(-10.0, 5.0 + 1.0e-8, 0.0), 
+            Point::new(10.0, 5.0 + 1.0e-8, 0.0)
+        );
         
-        // Since 1e-8 is within tolerance, it should be detected as tangent and return 1 point (or 2 extremely close points merged)
+        // Since 1e-8 is within tolerance, it should be detected as tangent and return 1 point 
+        // (or 2 extremely close points merged)
         let result = arc.intersect_with_line(&line_outside, false, &tol);
         match result {
             Ok(points) => {
@@ -1396,5 +1508,26 @@ mod tests  {
         // x = 5e7, y = sqrt(1e16 - 25e14) = sqrt(97.5e14) = 9.87421077650148...e7
         let expected_y = (1.0e16_f64 - 25.0e14_f64).sqrt();
         assert!(result[0].is_equal_to(&Point::new(5.0e7, expected_y, 0.0), &tol));
+    }
+
+    #[test]
+    fn test_arc_constructors() {
+        let tol = Tolerance::default();
+        let center = Point::origin();
+        let normal = Vector::z_axis();
+
+        // Arc::new
+        let arc = Arc::new(center, 5.0, 0.0, std::f64::consts::PI, normal, &tol).unwrap();
+        assert_eq!(arc.radius, 5.0);
+        assert!(arc.start_point().is_equal_to(&Point::new(5.0, 0.0, 0.0), &tol));
+        assert!(arc.end_point().is_equal_to(&Point::new(-5.0, 0.0, 0.0), &tol));
+
+        // Arc::from_center_start_end
+        let start = Point::new(5.0, 0.0, 0.0);
+        let end = Point::new(0.0, 5.0, 0.0);
+        let arc2 = Arc::from_center_start_end(&center, &start, &end, &normal, &tol).unwrap();
+        assert_eq!(arc2.radius, 5.0);
+        assert!(arc2.start_point().is_equal_to(&start, &tol));
+        assert!(arc2.end_point().is_equal_to(&end, &tol));
     }
 }
