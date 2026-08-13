@@ -369,6 +369,12 @@ impl NurbsCurve {
         
         Ok(ders)
     }
+
+    /// Calculates the arc length of the NURBS curve.
+    pub fn length(&self, _tol: &Tolerance) -> Result<f64, BgcError> {
+        // TODO: Implement NURBS curve length calculation
+        Err(BgcError::NotImplemented)
+    }
 }
 
 impl Curve for NurbsCurve {
@@ -637,4 +643,156 @@ mod tests {
         tol_fd2.set_equal_vector(1e-4);
         assert!(d[1].is_equal_to(&fd_2, &tol_fd2));
     }
+
+    #[test]
+    fn test_nurbs_length_line() {
+        let tol = Tolerance::default();
+        // Straight line P0=(0,0,0) to P1=(3,4,12), length = 13.0
+        let pts = vec![Point::new(0.0, 0.0, 0.0), Point::new(3.0, 4.0, 12.0)];
+        let weights = vec![1.0, 1.0];
+        let knots = vec![0.0, 0.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(1, pts, weights, knots, &tol).unwrap();
+
+        let len = curve.length(&tol).unwrap();
+        assert!((len - 13.0).abs() <= tol.equal_point());
+    }
+
+    #[test]
+    fn test_nurbs_length_straight_bezier() {
+        let tol = Tolerance::default();
+        // Straight quadratic Bezier P0=(0,0,0), P1=(1,0,0), P2=(2,0,0), length = 2.0
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(1.0, 0.0, 0.0),
+            Point::new(2.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        let len = curve.length(&tol).unwrap();
+        assert!((len - 2.0).abs() <= tol.equal_point());
+    }
+
+    #[test]
+    fn test_nurbs_length_quarter_circle() {
+        let tol = Tolerance::default();
+        // Quarter circle R=1. Length = PI/2 = 1.5707963267948966
+        let w1 = 1.0 / 2.0f64.sqrt();
+        let pts = vec![
+            Point::new(1.0, 0.0, 0.0),
+            Point::new(1.0, 1.0, 0.0),
+            Point::new(0.0, 1.0, 0.0),
+        ];
+        let weights = vec![1.0, w1, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        let len = curve.length(&tol).unwrap();
+        let expected_len = std::f64::consts::FRAC_PI_2;
+        assert!((len - expected_len).abs() <= tol.equal_point());
+    }
+
+    #[test]
+    fn test_nurbs_length_full_circle() {
+        let tol = Tolerance::default();
+        // Full circle R=2. Length = 2 * PI * 2 = 4 * PI
+        let w = std::f64::consts::FRAC_1_SQRT_2;
+        let pts = vec![
+            Point::new(2.0, 0.0, 0.0),
+            Point::new(2.0, 2.0, 0.0),
+            Point::new(0.0, 2.0, 0.0),
+            Point::new(-2.0, 2.0, 0.0),
+            Point::new(-2.0, 0.0, 0.0),
+            Point::new(-2.0, -2.0, 0.0),
+            Point::new(0.0, -2.0, 0.0),
+            Point::new(2.0, -2.0, 0.0),
+            Point::new(2.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, w, 1.0, w, 1.0, w, 1.0, w, 1.0];
+        let knots = vec![
+            0.0, 0.0, 0.0,
+            0.25, 0.25,
+            0.5, 0.5,
+            0.75, 0.75,
+            1.0, 1.0, 1.0,
+        ];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        let len = curve.length(&tol).unwrap();
+        let expected_len = 4.0 * std::f64::consts::PI;
+        assert!((len - expected_len).abs() <= tol.equal_point());
+    }
+
+    #[test]
+    fn test_nurbs_length_medium_scale_line() {
+        let tol = Tolerance::default();
+        // Line from (0,0,0) to (300, 400, 1200), length = 1300.0
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(300.0, 400.0, 1200.0),
+        ];
+        let weights = vec![1.0, 1.0];
+        let knots = vec![0.0, 0.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(1, pts, weights, knots, &tol).unwrap();
+
+        let len = curve.length(&tol).unwrap();
+        assert!((len - 1300.0).abs() <= tol.equal_point());
+    }
+
+    #[test]
+    fn test_nurbs_length_circle_r500() {
+        let tol = Tolerance::default();
+        // Circle R = 500.0. Length = 2 * PI * 500 = 1000 * PI
+        let r = 500.0;
+        let w = std::f64::consts::FRAC_1_SQRT_2;
+        let pts = vec![
+            Point::new(r, 0.0, 0.0),
+            Point::new(r, r, 0.0),
+            Point::new(0.0, r, 0.0),
+            Point::new(-r, r, 0.0),
+            Point::new(-r, 0.0, 0.0),
+            Point::new(-r, -r, 0.0),
+            Point::new(0.0, -r, 0.0),
+            Point::new(r, -r, 0.0),
+            Point::new(r, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, w, 1.0, w, 1.0, w, 1.0, w, 1.0];
+        let knots = vec![
+            0.0, 0.0, 0.0,
+            0.25, 0.25,
+            0.5, 0.5,
+            0.75, 0.75,
+            1.0, 1.0, 1.0,
+        ];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        let len = curve.length(&tol).unwrap();
+        let expected_len = 2.0 * std::f64::consts::PI * r;
+        assert!((len - expected_len).abs() <= tol.equal_point());
+    }
+
+    #[test]
+    fn test_nurbs_length_translated_offset() {
+        let tol = Tolerance::default();
+        // Quarter circle R = 50.0 offset by (500.0, -1200.0, 300.0). Length = (PI/2) * 50 = 25 * PI
+        let r = 50.0;
+        let ox = 500.0;
+        let oy = -1200.0;
+        let oz = 300.0;
+        let w1 = 1.0 / 2.0f64.sqrt();
+        let pts = vec![
+            Point::new(ox + r, oy, oz),
+            Point::new(ox + r, oy + r, oz),
+            Point::new(ox, oy + r, oz),
+        ];
+        let weights = vec![1.0, w1, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        let len = curve.length(&tol).unwrap();
+        let expected_len = std::f64::consts::FRAC_PI_2 * r;
+        assert!((len - expected_len).abs() <= tol.equal_point());
+    }
 }
+
