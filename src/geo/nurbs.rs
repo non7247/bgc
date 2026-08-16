@@ -371,9 +371,96 @@ impl NurbsCurve {
     }
 
     /// Calculates the arc length of the NURBS curve.
-    pub fn length(&self, _tol: &Tolerance) -> Result<f64, BgcError> {
-        // TODO: Implement NURBS curve length calculation
-        Err(BgcError::NotImplemented)
+    pub fn length(&self, tol: &Tolerance) -> Result<f64, BgcError> {
+        self.knot_spans(tol)
+            .iter()
+            .try_fold(0.0, |acc, &(a, b)| {
+                let span_len = self.integrate_span_length(a, b, tol)?;
+                Ok(acc + span_len)
+            })
+    }
+    
+    /// Returns a list of valid knot intervals (spans of non-zero length) where the curve is
+    /// defined.
+    ///
+    /// # Returns
+    /// `Vec<(f64, f64)>` : Pairs of (start parameter, end parameter) for each interval.
+    fn knot_spans(&self, tol: &Tolerance) -> Vec<(f64, f64)> {
+        let p = self.degree;
+        let n = self.control_points.len();
+        
+        let mut spans = Vec::new();
+        let mut current_u = self.knots[p];
+        
+        for &next_u in &self.knots[(p + 1)..=n] {
+            if (next_u - current_u).abs() > tol.calculation() {
+                spans.push((current_u, next_u));
+                current_u = next_u;
+            }
+        }
+        
+        spans
+    }
+    
+    /// (Evaluation point x_i, weight w_i) for 5-point Gauss-Legendre quadrature.
+    /// Domain: [-1, 1]
+    const GAUSS_POINTS_5: &[(f64, f64)] = &[
+        (-0.9061798459386640, 0.2369268850561891),
+        (-0.5384693101056831, 0.4786286704993665),
+        ( 0.0000000000000000, 0.5688888888888889),
+        ( 0.5384693101056831, 0.4786286704993665),
+        ( 0.9061798459386640, 0.2369268850561891),
+    ];
+    
+    /// Calculates curve length over the given knot interval [a, b] via Gauss integration.
+    fn integrate_span_length(&self, a: f64, b: f64, tol: &Tolerance) -> Result<f64, BgcError> {
+        self.integrate_span_length_adaptive(a, b, 0, tol)
+    }
+
+    fn integrate_span_length_adaptive(
+        &self,
+        a: f64,
+        b: f64,
+        depth: usize,
+        tol: &Tolerance
+    ) -> Result<f64, BgcError> {
+        let val_single = self.gauss_5_span_length(a, b, tol)?;
+        if depth >= 10 {
+            return Ok(val_single);
+        }
+        let mid = (a + b) / 2.0;
+        let val_left = self.gauss_5_span_length(a, mid, tol)?;
+        let val_right = self.gauss_5_span_length(mid, b, tol)?;
+        let val_double = val_left + val_right;
+
+        if (val_single - val_double).abs() <= tol.calculation() * (1.0 + val_double.abs()) {
+            Ok(val_double)
+        } else {
+            let left_res = self.integrate_span_length_adaptive(a, mid, depth + 1, tol)?;
+            let right_res = self.integrate_span_length_adaptive(mid, b, depth + 1, tol)?;
+            Ok(left_res + right_res)
+        }
+    }
+
+    fn gauss_5_span_length(&self, a: f64, b: f64, tol: &Tolerance) -> Result<f64, BgcError> {
+        let half_length = (b - a) / 2.0;
+        let mid_point = (a + b) / 2.0;
+        
+        let mut sum = 0.0;
+        
+        for &(x_i, w_i) in Self::GAUSS_POINTS_5 {
+            let u = mid_point + half_length * x_i;
+            
+            // Get 1st derivative vector (velocity vector C'(u)) at parameter u
+            let (_, ders) = self.evaluate_derivatives(u, 1, tol)?;
+            let v = ders[0];
+            
+            // Calculate ||C'(u)||, the magnitude of derivative vector
+            let speed = v.length();
+            sum += w_i * speed;
+        }
+        
+        Ok(half_length * sum)
     }
 }
 
@@ -795,4 +882,3 @@ mod tests {
         assert!((len - expected_len).abs() <= tol.equal_point());
     }
 }
-
