@@ -881,4 +881,223 @@ mod tests {
         let expected_len = std::f64::consts::FRAC_PI_2 * r;
         assert!((len - expected_len).abs() <= tol.equal_point());
     }
+
+    #[test]
+    fn test_nurbs_intersect_with_line_bezier_two_points() {
+        let tol = Tolerance::default();
+        // Quadratic Bezier: P0=(0,0,0), P1=(50,100,0), P2=(100,0,0)
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(50.0, 100.0, 0.0),
+            Point::new(100.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Line y = 37.5 from x = -50 to x = 150
+        let line = Line::new(Point::new(-50.0, 37.5, 0.0), Point::new(150.0, 37.5, 0.0));
+        let pts_intersect = curve.intersect_with_line(&line, false, &tol).unwrap();
+
+        assert_eq!(pts_intersect.len(), 2);
+        // Intersections expected at x = 25.0 and x = 75.0, y = 37.5, z = 0.0
+        let p1 = Point::new(25.0, 37.5, 0.0);
+        let p2 = Point::new(75.0, 37.5, 0.0);
+        assert!(
+            (pts_intersect[0].is_equal_to(&p1, &tol) && pts_intersect[1].is_equal_to(&p2, &tol))
+                || (pts_intersect[0].is_equal_to(&p2, &tol) && pts_intersect[1].is_equal_to(&p1, &tol))
+        );
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_line_extends() {
+        let tol = Tolerance::default();
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(50.0, 100.0, 0.0),
+            Point::new(100.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Line segment from (0, 37.5, 0) to (50, 37.5, 0)
+        let line = Line::new(Point::new(0.0, 37.5, 0.0), Point::new(50.0, 37.5, 0.0));
+
+        // extends = false: only (25, 37.5, 0) should be included
+        let res_no_extend = curve.intersect_with_line(&line, false, &tol).unwrap();
+        assert_eq!(res_no_extend.len(), 1);
+        assert!(res_no_extend[0].is_equal_to(&Point::new(25.0, 37.5, 0.0), &tol));
+
+        // extends = true: both (25, 37.5, 0) and (75, 37.5, 0) should be included
+        let res_extend = curve.intersect_with_line(&line, true, &tol).unwrap();
+        assert_eq!(res_extend.len(), 2);
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_line_no_intersection() {
+        let tol = Tolerance::default();
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(50.0, 100.0, 0.0),
+            Point::new(100.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Line y = 150.0 is above the curve's peak (y_max = 50.0)
+        let line = Line::new(Point::new(-50.0, 150.0, 0.0), Point::new(150.0, 150.0, 0.0));
+        let res = curve.intersect_with_line(&line, true, &tol).unwrap();
+        assert!(res.is_empty());
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_line_circle() {
+        let tol = Tolerance::default();
+        // Circle R = 100.0 offset by (100.0, 200.0, 50.0)
+        let r = 100.0;
+        let ox = 100.0;
+        let oy = 200.0;
+        let oz = 50.0;
+        let w = std::f64::consts::FRAC_1_SQRT_2;
+        let pts = vec![
+            Point::new(ox + r, oy, oz),
+            Point::new(ox + r, oy + r, oz),
+            Point::new(ox, oy + r, oz),
+            Point::new(ox - r, oy + r, oz),
+            Point::new(ox - r, oy, oz),
+            Point::new(ox - r, oy - r, oz),
+            Point::new(ox, oy - r, oz),
+            Point::new(ox + r, oy - r, oz),
+            Point::new(ox + r, oy, oz),
+        ];
+        let weights = vec![1.0, w, 1.0, w, 1.0, w, 1.0, w, 1.0];
+        let knots = vec![
+            0.0, 0.0, 0.0,
+            0.25, 0.25,
+            0.5, 0.5,
+            0.75, 0.75,
+            1.0, 1.0, 1.0,
+        ];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Horizontal line through circle center (y = 200.0, z = 50.0)
+        let line = Line::new(Point::new(-100.0, 200.0, 50.0), Point::new(300.0, 200.0, 50.0));
+        let res = curve.intersect_with_line(&line, false, &tol).unwrap();
+        assert_eq!(res.len(), 2);
+        let p1 = Point::new(0.0, 200.0, 50.0);
+        let p2 = Point::new(200.0, 200.0, 50.0);
+        assert!(
+            (res[0].is_equal_to(&p1, &tol) && res[1].is_equal_to(&p2, &tol))
+                || (res[0].is_equal_to(&p2, &tol) && res[1].is_equal_to(&p1, &tol))
+        );
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_line_tangent() {
+        let tol = Tolerance::default();
+        // Circle R = 100.0 offset by (100.0, 200.0, 50.0)
+        let r = 100.0;
+        let ox = 100.0;
+        let oy = 200.0;
+        let oz = 50.0;
+        let w = std::f64::consts::FRAC_1_SQRT_2;
+        let pts = vec![
+            Point::new(ox + r, oy, oz),
+            Point::new(ox + r, oy + r, oz),
+            Point::new(ox, oy + r, oz),
+            Point::new(ox - r, oy + r, oz),
+            Point::new(ox - r, oy, oz),
+            Point::new(ox - r, oy - r, oz),
+            Point::new(ox, oy - r, oz),
+            Point::new(ox + r, oy - r, oz),
+            Point::new(ox + r, oy, oz),
+        ];
+        let weights = vec![1.0, w, 1.0, w, 1.0, w, 1.0, w, 1.0];
+        let knots = vec![
+            0.0, 0.0, 0.0,
+            0.25, 0.25,
+            0.5, 0.5,
+            0.75, 0.75,
+            1.0, 1.0, 1.0,
+        ];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Tangent line at y = 300.0 (top of circle), z = 50.0
+        let line = Line::new(Point::new(-50.0, 300.0, 50.0), Point::new(250.0, 300.0, 50.0));
+        let res = curve.intersect_with_line(&line, false, &tol).unwrap();
+        assert_eq!(res.len(), 1);
+        assert!(res[0].is_equal_to(&Point::new(100.0, 300.0, 50.0), &tol));
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_line_skew_3d() {
+        let tol = Tolerance::default();
+        // Quadratic Bezier in XY plane z = 0
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(50.0, 100.0, 0.0),
+            Point::new(100.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Line parallel to XY plane but offset in Z by 10.0 (skew line)
+        let line = Line::new(Point::new(-50.0, 37.5, 10.0), Point::new(150.0, 37.5, 10.0));
+        let res = curve.intersect_with_line(&line, true, &tol).unwrap();
+        assert!(res.is_empty());
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_line_multispan_cubic() {
+        let tol = Tolerance::default();
+        // Multi-span cubic NURBS curve
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(100.0, 200.0, 0.0),
+            Point::new(200.0, -100.0, 0.0),
+            Point::new(300.0, 200.0, 0.0),
+            Point::new(400.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(3, pts, weights, knots, &tol).unwrap();
+
+        // Line y = 50.0 across the curve
+        let line = Line::new(Point::new(-50.0, 50.0, 0.0), Point::new(450.0, 50.0, 0.0));
+        let res = curve.intersect_with_line(&line, false, &tol).unwrap();
+        // The wave C(u) crosses y = 50 multiple times
+        assert!(res.len() >= 2);
+        for pt in &res {
+            assert!((pt.y - 50.0).abs() <= tol.equal_point());
+        }
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_line_large_scale_10k() {
+        let tol = Tolerance::default();
+        // Quadratic Bezier at ~10,000 scale: (0,0,5000), (10000, 20000, 5000), (20000, 0, 5000)
+        let pts = vec![
+            Point::new(0.0, 0.0, 5000.0),
+            Point::new(10000.0, 20000.0, 5000.0),
+            Point::new(20000.0, 0.0, 5000.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Line y = 7500.0, z = 5000.0
+        let line = Line::new(Point::new(-5000.0, 7500.0, 5000.0), Point::new(25000.0, 7500.0, 5000.0));
+        let res = curve.intersect_with_line(&line, false, &tol).unwrap();
+
+        assert_eq!(res.len(), 2);
+        let p1 = Point::new(5000.0, 7500.0, 5000.0);
+        let p2 = Point::new(15000.0, 7500.0, 5000.0);
+        assert!(
+            (res[0].is_equal_to(&p1, &tol) && res[1].is_equal_to(&p2, &tol))
+                || (res[0].is_equal_to(&p2, &tol) && res[1].is_equal_to(&p1, &tol))
+        );
+    }
 }
