@@ -26,8 +26,12 @@ impl Vector {
         Self::new(0.0, 0.0, 1.0)
     }
 
+    pub fn length_squared(&self) -> f64 {
+        self.x * self.x + self.y * self.y + self.z * self.z
+    }
+    
     pub fn length(&self) -> f64 {
-        (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
+        self.length_squared().sqrt()
     }
 
     pub fn is_equal_to(&self, rhs: &Self, tol: &Tolerance) -> bool {
