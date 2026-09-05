@@ -29,7 +29,7 @@ impl Vector {
     pub fn length_squared(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
-    
+
     pub fn length(&self) -> f64 {
         self.length_squared().sqrt()
     }
@@ -79,7 +79,7 @@ impl Vector {
     }
 
     /// Calculates the angle of XY relative to the positive X-axis.
-    /// 
+    ///
     /// # Returns
     /// The angle of the vector in radians, in the range `[0.0, 2 * PI)`.
     pub fn angle_xy(&self, tol: &Tolerance) -> f64 {
@@ -162,7 +162,7 @@ impl ops::Add<&Vector> for Vector {
     type Output = Self;
 
     fn add(self, rhs: &Vector) -> Self::Output {
-        self + *rhs 
+        self + *rhs
     }
 }
 
@@ -387,7 +387,7 @@ mod tests {
     fn vector_scalar_multiplication() {
         let tol = Tolerance::default();
         let v = Vector::new(1.0, 2.0, 3.0);
-        
+
         let result = v * 2.0;
         assert!(result.is_equal_to(&Vector::new(2.0, 4.0, 6.0), &tol));
 
@@ -399,7 +399,7 @@ mod tests {
     #[test]
     fn vector_normal() {
         let tol = Tolerance::default();
-        
+
         let v = Vector::new(3.0, 0.0, 0.0);
         let n = v.normal(&tol);
         assert!(n.is_equal_to(&Vector::new(1.0, 0.0, 0.0), &tol));
@@ -413,7 +413,7 @@ mod tests {
     #[test]
     fn vector_products() {
         let tol = Tolerance::default();
-        
+
         let v1 = Vector::new(1.0, 2.0, 3.0);
         let v2 = Vector::new(4.0, 5.0, 6.0);
 
@@ -459,10 +459,10 @@ mod tests {
 
         assert!((v1.length() - 1.0e9).abs() < 1.0); // Absolute error might be large, but relative is small
         assert!(v1.normal(&tol).is_equal_to(&Vector::new(1.0, 0.0, 0.0), &tol));
-        
+
         // Inner product of perpendicular large vectors should be near zero
         assert!(v1.inner_product(&v2).abs() < tol.calculation());
-        
+
         // Outer product
         let op = v1.outer_product(&v2);
         assert!(op.is_equal_to(&Vector::new(0.0, 0.0, 1.0e18), &tol));

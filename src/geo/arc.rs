@@ -313,7 +313,7 @@ impl Arc {
         }
 
         // check one circle is entirely contained within the other
-        if (r1 - r2).abs() > tol.equal_point() 
+        if (r1 - r2).abs() > tol.equal_point()
                 && ((r1 > r2 && r1 > r2 + dist) || (r2 > r1 && r2 > r1 + dist)) {
             return Err(BgcError::InvalidInput);
         }
@@ -326,7 +326,7 @@ impl Arc {
         // We place the first circle at the origin and the second at (d, 0).
         // x is the coordinate along the line connecting the centers.
         let x = (r1 * r1 - r2 * r2 + d * d) / (2.0 * d);
-        
+
         let y_sq = r1 * r1 - x * x;
         if y_sq < 0.0 {
             // This can happen with floating point inaccuracies even after the initial checks,
@@ -342,10 +342,10 @@ impl Arc {
         // [y'] = [ sin  cos ] [y]
         // x_new = x*cos - y*sin = x*(a/d) - y*(b/d)
         // y_new = x*sin + y*cos = x*(b/d) + y*(a/d)
-        
+
         let p1_x = (x * a - y * b) / d;
         let p1_y = (x * b + y * a) / d;
-        
+
         if y.abs() < tol.calculation() {
             // One intersection point (the circles are tangent and we already calculated the point)
             Ok(vec![Point::new(p1_x, p1_y, 0.0)])
@@ -455,7 +455,7 @@ impl Curve for Arc {
                         extends || self.contains(p, false, tol) && other.contains(p, false, tol)
                     })
                     .collect();
-                
+
                 if valid_points.is_empty() {
                     return Err(BgcError::InvalidInput);
                 }
@@ -805,8 +805,8 @@ mod tests  {
             end_angle: std::f64::consts::PI, // Semicircle
         };
         let plane = Plane::from_point_and_normal(
-            &Point::new(3.0, 0.0, 0.0), 
-            &Vector::new(1.0, 0.0, 0.0), 
+            &Point::new(3.0, 0.0, 0.0),
+            &Vector::new(1.0, 0.0, 0.0),
             &Tolerance::default()
         );
         let tol = Tolerance::default();
@@ -833,8 +833,8 @@ mod tests  {
             end_angle: std::f64::consts::PI * 2.0, // Full circle
         };
         let plane = Plane::from_point_and_normal(
-            &Point::new(0.0, 3.0, 0.0), 
-            &Vector::new(0.0, 1.0, 0.0), 
+            &Point::new(0.0, 3.0, 0.0),
+            &Vector::new(0.0, 1.0, 0.0),
             &Tolerance::default()
         );
         let tol = Tolerance::default();
@@ -1278,8 +1278,8 @@ mod tests  {
         let start = Point::new(radius, 0.0, 0.0);
         let end = Point::new(0.0, radius, 0.0);
         let on_arc = Point::new(
-            radius * std::f64::consts::FRAC_PI_4.cos(), 
-            radius * std::f64::consts::FRAC_PI_4.sin(), 
+            radius * std::f64::consts::FRAC_PI_4.cos(),
+            radius * std::f64::consts::FRAC_PI_4.sin(),
             0.0
         );
 
@@ -1300,7 +1300,7 @@ mod tests  {
 
         // Test intersection with a line
         let line = Line::new(
-            Point::new(-radius, radius / 2.0, 0.0), 
+            Point::new(-radius, radius / 2.0, 0.0),
             Point::new(radius, radius / 2.0, 0.0)
         );
         let intersections = arc.intersect_with_line(&line, false, &tol).unwrap();
@@ -1321,8 +1321,8 @@ mod tests  {
         let start = Point::new(radius, 0.0, 0.0);
         let end = Point::new(0.0, radius, 0.0);
         let on_arc = Point::new(
-            radius * std::f64::consts::FRAC_PI_4.cos(), 
-            radius * std::f64::consts::FRAC_PI_4.sin(), 
+            radius * std::f64::consts::FRAC_PI_4.cos(),
+            radius * std::f64::consts::FRAC_PI_4.sin(),
             0.0
         );
 
@@ -1349,8 +1349,8 @@ mod tests  {
         let start = center + Vector::new(radius, 0.0, 0.0);
         let end = center + Vector::new(0.0, radius, 0.0);
         let on_arc = center + Vector::new(
-            radius * std::f64::consts::FRAC_PI_4.cos(), 
-            radius * std::f64::consts::FRAC_PI_4.sin(), 
+            radius * std::f64::consts::FRAC_PI_4.cos(),
+            radius * std::f64::consts::FRAC_PI_4.sin(),
             0.0
         );
 
@@ -1382,11 +1382,11 @@ mod tests  {
 
         // Line is slightly outside the circle by 1e-8 (tangent is y=5.0)
         let line_outside = Line::new(
-            Point::new(-10.0, 5.0 + 1.0e-8, 0.0), 
+            Point::new(-10.0, 5.0 + 1.0e-8, 0.0),
             Point::new(10.0, 5.0 + 1.0e-8, 0.0)
         );
-        
-        // Since 1e-8 is within tolerance, it should be detected as tangent and return 1 point 
+
+        // Since 1e-8 is within tolerance, it should be detected as tangent and return 1 point
         // (or 2 extremely close points merged)
         let result = arc.intersect_with_line(&line_outside, false, &tol);
         match result {

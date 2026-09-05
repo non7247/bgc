@@ -75,7 +75,7 @@ where
     }
 
     let mut pp = init_value;
-    
+
     let fd = dfunc(init_value);
     if fd.abs() <= tol.calculation() {
         return Err(BgcError::MustBeNonZero);

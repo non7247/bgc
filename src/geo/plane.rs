@@ -99,7 +99,7 @@ impl Plane {
     }
 
     pub fn is_coplanar_with(&self, other: &Plane, tol: &Tolerance) -> bool {
-        self.is_parallel_to(other, tol) && (self.param_d - other.param_d).abs() 
+        self.is_parallel_to(other, tol) && (self.param_d - other.param_d).abs()
                 < tol.equal_point()
     }
 
@@ -192,8 +192,8 @@ mod tests {
     fn plane_distance_to() {
         let tol = Tolerance::default();
         let plane = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
 
@@ -211,8 +211,8 @@ mod tests {
 
         // Angled plane
         let plane2 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(1.0, 1.0, 0.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(1.0, 1.0, 0.0),
             &tol
         );
         let p4 = Point::new(1.0, 0.0, 0.0);
@@ -223,8 +223,8 @@ mod tests {
     fn plane_closest_point() {
         let tol = Tolerance::default();
         let plane = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
 
@@ -245,8 +245,8 @@ mod tests {
 
         // Angled plane
         let plane2 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(1.0, 1.0, 0.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(1.0, 1.0, 0.0),
             &tol
         );
         let p4 = Point::new(1.0, 0.0, 0.0);
@@ -258,8 +258,8 @@ mod tests {
     fn plane_contains() {
         let tol = Tolerance::default();
         let plane = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
 
@@ -280,16 +280,16 @@ mod tests {
     fn plane_get_normal_vector() {
         let tol = Tolerance::default();
         let plane = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 5.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 5.0),
             &tol
         );
         let normal = plane.get_normal_vector(&tol);
         assert!(normal.is_equal_to(&Vector::new(0.0, 0.0, 1.0), &tol));
 
         let plane2 = Plane::from_point_and_normal(
-            &Point::new(1.0, 2.0, 3.0), 
-            &Vector::new(1.0, 1.0, 1.0), 
+            &Point::new(1.0, 2.0, 3.0),
+            &Vector::new(1.0, 1.0, 1.0),
             &tol
         );
         let normal2 = plane2.get_normal_vector(&tol);
@@ -301,18 +301,18 @@ mod tests {
     fn plane_is_parallel_to() {
         let tol = Tolerance::default();
         let plane1 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
         let plane2 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 5.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 5.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
         let plane3 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(1.0, 0.0, 0.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(1.0, 0.0, 0.0),
             &tol
         );
 
@@ -324,18 +324,18 @@ mod tests {
     fn plane_is_coplanar_with() {
         let tol = Tolerance::default();
         let plane1 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
         let plane2 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
         let plane3 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 5.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 5.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
 
@@ -349,13 +349,13 @@ mod tests {
 
         // Intersecting planes (X-Y plane and Y-Z plane)
         let plane1 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         ); // Z=0
         let plane2 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(1.0, 0.0, 0.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(1.0, 0.0, 0.0),
             &tol
         ); // X=0
         let intersection_line = plane1.intersect_with_plane(&plane2, &tol).unwrap();
@@ -366,13 +366,13 @@ mod tests {
 
         // Intersecting planes (angled)
         let plane3 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(1.0, 1.0, 0.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(1.0, 1.0, 0.0),
             &tol
         );
         let plane4 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 1.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 1.0, 1.0),
             &tol
         );
         let intersection_line2 = plane3.intersect_with_plane(&plane4, &tol).unwrap();
@@ -385,13 +385,13 @@ mod tests {
 
         // Parallel planes (should return error)
         let plane5 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
         let plane6 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 5.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 5.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
         let result = plane5.intersect_with_plane(&plane6, &tol);
@@ -400,13 +400,13 @@ mod tests {
 
         // Coplanar planes (should return error, as they don't intersect in a line)
         let plane7 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
         let plane8 = Plane::from_point_and_normal(
-            &Point::new(0.0, 0.0, 0.0), 
-            &Vector::new(0.0, 0.0, 1.0), 
+            &Point::new(0.0, 0.0, 0.0),
+            &Vector::new(0.0, 0.0, 1.0),
             &tol
         );
         let result2 = plane7.intersect_with_plane(&plane8, &tol);

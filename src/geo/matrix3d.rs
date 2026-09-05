@@ -182,28 +182,28 @@ mod tests {
     #[test]
     fn matrix3d_scale_robustness() {
         let tol = Tolerance::default();
-        
+
         // 1. Large coordinates (1,000km range)
         let origin = Point::new(1_000_000.0, 1_000_000.0, 1_000_000.0);
         let uaxis = Vector::new(1.0, 0.0, 0.0);
         let vaxis = Vector::new(0.0, 1.0, 0.0);
-        
+
         let to_local = Matrix3d::transform_to_local(&origin, &uaxis, &vaxis, &tol);
-        
+
         // Point P at a large coordinate
         let p_world = Point::new(1_000_001.0, 1_000_000.5, 1_000_000.0);
         let p_local = p_world.transform(&to_local, &tol).expect("Transformation failed");
-        
+
         // In local coordinates, it should be (1.0, 0.5, 0.0)
         assert!(p_local.is_equal_to(&Point::new(1.0, 0.5, 0.0), &tol));
 
         // 2. Tiny coordinates and vectors
         let origin_tiny = Point::new(1.0e-7, 1.0e-7, 1.0e-7);
-        let u_tiny = Vector::new(1.0, 1.0e-9, 0.0).normal(&tol); 
+        let u_tiny = Vector::new(1.0, 1.0e-9, 0.0).normal(&tol);
         let v_tiny = Vector::new(-1.0e-9, 1.0, 0.0).normal(&tol);
-        
+
         let to_world = Matrix3d::transform_to_world(&origin_tiny, &u_tiny, &v_tiny, &tol);
-        
+
         // Local origin should transform back to world tiny origin
         let p_back = Point::origin().transform(&to_world, &tol).expect("Transformation failed");
         assert!(p_back.is_equal_to(&origin_tiny, &tol));
@@ -227,7 +227,7 @@ mod tests {
         match transformed {
             Ok(p) => assert!(p.is_equal_to(&Point::new(0.0, 0.0, 0.0), &tol)),
             Err(error) => {
-                panic!("error in matrix3d_transform_to_local: {:?}", error); 
+                panic!("error in matrix3d_transform_to_local: {:?}", error);
             }
         }
 
@@ -240,7 +240,7 @@ mod tests {
         match transformed {
             Ok(p) => assert!(p.is_equal_to(&Point::new(10.0, 20.0, 30.0), &tol)),
             Err(error) => {
-                panic!("error in matrix3d_transform_to_local: {:?}", error); 
+                panic!("error in matrix3d_transform_to_local: {:?}", error);
             }
         }
 
@@ -253,18 +253,18 @@ mod tests {
         match transformed {
             Ok(p) => assert!(p.is_equal_to(&Point::new(0.0, 0.0, 0.0), &tol)),
             Err(error) => {
-                panic!("error in matrix3d_transform_to_local: {:?}", error); 
+                panic!("error in matrix3d_transform_to_local: {:?}", error);
             }
         }
 
-        let transformed 
+        let transformed
             = Point::new(92443.211625, 5959.902281, 17693.140222).transform(&to_local, &tol);
         match transformed {
             Ok(p) => {
                 assert!(p.is_equal_to(&Point::new(9385.826917, 3284.281094, 0.143078), &tol));
             },
             Err(error) => {
-                panic!("error in matrix3d_transform_to_local: {:?}", error); 
+                panic!("error in matrix3d_transform_to_local: {:?}", error);
             }
         }
     }
@@ -293,7 +293,7 @@ mod tests {
 
         let mut ex_tol = Tolerance::default();
         ex_tol.set_equal_point(0.005);
-        let transformed 
+        let transformed
             = Point::new(9385.826917, 3284.281094, 0.143078).transform(&to_world, &tol);
         match transformed {
             Ok(p) => assert!(p.is_equal_to(

@@ -49,12 +49,12 @@ impl Line {
         let mut closest = Point::new(
             self.start_point.x + uvec.x * t,
             self.start_point.y + uvec.y * t,
-            self.start_point.z + uvec.z * t 
+            self.start_point.z + uvec.z * t
         );
 
         if !extends {
             let to_closest = (closest - self.start_point).normal(tol);
-            
+
             if to_closest.is_equal_to(&(uvec * -1.0), tol) {
                 closest = self.start_point;
             } else if self.length() < closest.distance_to(&self.start_point) {
@@ -72,7 +72,7 @@ impl Line {
         }
 
         let closest = self.closest_point(p, extends, tol);
-        
+
         closest.is_equal_to(p, tol)
     }
 
@@ -94,8 +94,8 @@ impl Line {
         let dir_self = self.direction(tol);
         let dir_other = l.direction(tol);
 
-        (dist_start - dist_end).abs() <= tol.equal_point() 
-            && (dir_self.is_equal_to(&dir_other, tol) 
+        (dist_start - dist_end).abs() <= tol.equal_point()
+            && (dir_self.is_equal_to(&dir_other, tol)
                 || dir_self.is_equal_to(&(dir_other * -1.0), tol))
     }
 
@@ -158,7 +158,7 @@ impl Line {
 
 impl Curve for Line {
     /// Calculates an intersection point of two lines
-    /// 
+    ///
     /// line1 = (x - x1)/l1 = (y - y1)/m1 = (z - z1)/n1 ... this line <br>
     /// line2 = (x - x2)/l2 = (y - y2)/m2 = (z - z2)/n2 ... other line
     ///
@@ -177,12 +177,12 @@ impl Curve for Line {
         extends: bool,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        if self.start_point.is_equal_to(&other.start_point, tol) 
+        if self.start_point.is_equal_to(&other.start_point, tol)
             || self.start_point.is_equal_to(&other.end_point, tol)
         {
             return Ok(vec![self.start_point]);
         }
-        if self.end_point.is_equal_to(&other.start_point, tol) 
+        if self.end_point.is_equal_to(&other.start_point, tol)
             || self.end_point.is_equal_to(&other.end_point, tol)
         {
             return Ok(vec![self.end_point]);
@@ -349,7 +349,7 @@ mod tests {
         let l2 = Line::new(Point::new(2.0, 6.0, 0.0), Point::new(6.0, 1.0, 0.0));
 
         let p = l1.intersect_with(&l2, false, &Tolerance::default());
-        
+
         match p {
             Ok(ip) => {
                 assert!(ip[0].is_equal_to(
@@ -537,7 +537,7 @@ mod tests {
         };
 
         let l3 = Line::new(
-            Point::new(268.3669, 445.9483, 10.0), 
+            Point::new(268.3669, 445.9483, 10.0),
             Point::new(1596.5413, 1349.3888, 10.0)
         );
 
@@ -824,10 +824,10 @@ mod tests {
     #[test]
     fn line_near_parallel_intersection() {
         let tol = Tolerance::default();
-        
+
         // Line 1: along X-axis
         let l1 = Line::new(Point::new(0.0, 0.0, 0.0), Point::new(100.0, 0.0, 0.0));
-        
+
         // Line 2: slightly angled (0.0001 radians)
         let angle: f64 = 0.0001;
         let l2 = Line::new(
@@ -858,7 +858,7 @@ mod tests {
         );
         let p_large = Point::new(1.0e8 + 1.0, 1.0e8 + 1.0, 1.0e8 + 1.0);
         let closest = l_large.closest_point(&p_large, true, &tol);
-        
+
         // At 10^8 scale, 1.0e-4 tolerance is still challenging for some operations,
         // but closest_point should handle this well.
         assert!(closest.is_equal_to(&p_large, &tol));
@@ -868,7 +868,7 @@ mod tests {
             Point::new(1.0, 1.0, 1.0),
             Point::new(1.0 + 1.0e-12, 1.0, 1.0)
         );
-        
+
         // Direction should handle near-zero length (returns original vector in current implementation)
         let dir = l_short.direction(&tol);
         assert!(dir.is_equal_to(&Vector::new(1.0e-12, 0.0, 0.0), &tol));
