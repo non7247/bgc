@@ -18,12 +18,16 @@ impl Point {
         Self::new(0.0, 0.0, 0.0)
     }
 
-    pub fn distance_to(&self, rhs: &Self) -> f64 {
+    pub fn distance_squared_to(&self, rhs: &Self) -> f64 {
         let dx = self.x - rhs.x;
         let dy = self.y - rhs.y;
         let dz = self.z - rhs.z;
 
-        (dx * dx + dy * dy + dz * dz).sqrt()
+        (dx * dx + dy * dy + dz * dz)
+    }
+
+    pub fn distance_to(&self, rhs: &Self) -> f64 {
+        self.distance_squared_to(rhs).sqrt()
     }
 
     pub fn is_equal_to(&self, rhs: &Self, tol: &Tolerance) -> bool {
