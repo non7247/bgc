@@ -65,6 +65,19 @@ impl Line {
         closest
     }
 
+    /// Returns the distance between this line and a point.
+    pub fn distance_to(&self, point: &Point, extends: bool, tol: &Tolerance) -> f64 {
+        let closest = self.closest_point(point, extends, tol);
+        point.distance_to(&closest)
+    }
+
+    /// Returns the squared distance between this line and a point.
+    /// Avoids square root calculation for faster tolerance checks.
+    pub fn distance_squared_to(&self, point: &Point, extends: bool, tol: &Tolerance) -> f64 {
+        let closest = self.closest_point(point, extends, tol);
+        point.distance_squared_to(&closest)
+    }
+
     /// Determines if input point lies on this line.
     pub fn contains(&self, p: &Point, extends: bool, tol: &Tolerance) -> bool {
         if p.is_equal_to(&self.start_point, tol) || p.is_equal_to(&self.end_point, tol) {
