@@ -539,7 +539,7 @@ impl Curve for NurbsCurve {
                         break;
                     }
 
-                    let delta = -dist_vec.inner_product(&line_dir) / denom;
+                    let delta = -dist_vec.inner_product(&dist_der) / denom;
                     u_guess += delta;
 
                     if u_guess < u_min - tol.calculation() || u_guess > u_max + tol.calculation() {
