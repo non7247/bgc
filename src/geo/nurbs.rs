@@ -479,7 +479,6 @@ impl Curve for NurbsCurve {
         // Geometric search for each knot span
         let spans = self.knot_spans(tol);
         let mut intersection_points: Vec<Point> = Vec::new();
-        let mut found_params: Vec<f64> = Vec::new();
 
         for (u_min, u_max) in spans {
             // Subdivide within the span to search for an initial solution (seed value)
@@ -491,7 +490,7 @@ impl Curve for NurbsCurve {
                 // Run Newton's method refinement
                 let mut u_guess = (u0 + u1) / 2.0;
 
-                for _ in 0..15 {
+                for _ in 0..25 {
                     let (pt, ders) = self.evaluate_derivatives(u_guess, 1, tol)?;
                     let v = pt - line.start_point;
 
@@ -499,21 +498,6 @@ impl Curve for NurbsCurve {
                     // the line
                     let proj = line_dir * (v.inner_product(&line_dir) / line_len_sq);
                     let dist_vec = v - proj;
-
-                    if dist_vec.length() <= tol.equal_point() {
-                        // Check for duplicate solutions
-                        if !found_params.iter().any(|&p| (p - u_guess).abs() <= tol.calculation()) {
-                            // Line segment range check (when extends == false)
-                            let t = v.inner_product(&line_dir) / line_len_sq;
-                            if extends
-                                || (-tol.calculation() ..= 1.0 + tol.calculation()).contains(&t)
-                            {
-                                found_params.push(u_guess);
-                                intersection_points.push(pt);
-                            }
-                        }
-                        break;
-                    }
 
                     // Update parameter u step using the first derivative
                     let der = ders[0];
@@ -533,6 +517,28 @@ impl Curve for NurbsCurve {
                     }
 
                     u_guess = u_guess.clamp(u_min, u_max);
+
+                    if delta.abs() <= tol.convergence() {
+                        break;
+                    }
+                }
+
+                // Check if the converged point lies on the line within tolerance
+                if (u_min..=u_max).contains(&u_guess) {
+                    let pt = self.evaluate(u_guess, tol)?;
+                    let v = pt - line.start_point;
+                    let proj = line_dir * (v.inner_product(&line_dir) / line_len_sq);
+                    let dist_vec = v - proj;
+
+                    if dist_vec.length() <= tol.equal_point() {
+                        let t = v.inner_product(&line_dir) / line_len_sq;
+                        if (extends
+                            || (-tol.calculation() ..= 1.0 + tol.calculation()).contains(&t))
+                            && !intersection_points.iter().any(|p| p.is_equal_to(&pt, tol))
+                        {
+                            intersection_points.push(pt);
+                        }
+                    }
                 }
             }
         }
