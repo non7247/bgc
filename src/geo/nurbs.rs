@@ -217,9 +217,7 @@ impl NurbsCurve {
         let mut derivatives = Vec::with_capacity(max_derivatives);
 
         // Store derivatives from 1st to n_ders-th
-        for d in 1..=n_ders {
-            derivatives.push(ck[d]);
-        }
+        derivatives.extend(ck.iter().skip(1).take(n_ders).copied());
 
         // Fill remaining higher-order derivatives with zero vectors if max_derivatives > degree
         for _ in (n_ders + 1)..=max_derivatives {
