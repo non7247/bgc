@@ -23,7 +23,7 @@ impl Point {
         let dy = self.y - rhs.y;
         let dz = self.z - rhs.z;
 
-        (dx * dx + dy * dy + dz * dz)
+        dx * dx + dy * dy + dz * dz
     }
 
     pub fn distance_to(&self, rhs: &Self) -> f64 {
