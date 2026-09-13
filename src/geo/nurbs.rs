@@ -481,15 +481,78 @@ impl Curve for NurbsCurve {
         let mut intersection_points: Vec<Point> = Vec::new();
 
         for (u_min, u_max) in spans {
-            // Subdivide within the span to search for an initial solution (seed value)
-            let samples = 10;
+            // Subdivide within the span to evaluate sample points
+            let samples = 16;
+            let mut u_samples = Vec::with_capacity(samples + 1);
+            let mut r_samples = Vec::with_capacity(samples + 1);
+            let mut d_samples = Vec::with_capacity(samples + 1);
+
+            for i in 0..=samples {
+                let u = u_min + (u_max - u_min) * (i as f64) / (samples as f64);
+                let pt = self.evaluate(u, tol)?;
+                let v = pt - line.start_point;
+                let proj = line_dir * (v.inner_product(&line_dir) / line_len_sq);
+                let r = v - proj;
+                let d = r.length();
+                u_samples.push(u);
+                r_samples.push(r);
+                d_samples.push(d);
+            }
+
+            let mut seeds: Vec<f64> = Vec::new();
+
+            // 1. Check boundary endpoints
+            if d_samples[0] <= tol.equal_point() {
+                seeds.push(u_samples[0]);
+            }
+            if d_samples[samples] <= tol.equal_point() {
+                seeds.push(u_samples[samples]);
+            }
+
+            // 2. Check for transversal crossings (r_a and r_b in opposite directions)
             for i in 0..samples {
-                let u0 = u_min + (u_max - u_min) * (i as f64) / (samples as f64);
-                let u1 = u_min + (u_max - u_min) * ((i + 1) as f64) / (samples as f64);
+                let r_a = r_samples[i];
+                let r_b = r_samples[i + 1];
 
-                // Run Newton's method refinement
-                let mut u_guess = (u0 + u1) / 2.0;
+                if r_a.inner_product(&r_b) <= 0.0 {
+                    let d_a = d_samples[i];
+                    let d_b = d_samples[i + 1];
+                    let denom = d_a + d_b;
+                    let u_a = u_samples[i];
+                    let u_b = u_samples[i + 1];
+                    let seed = if denom > tol.calculation() {
+                        u_a + (u_b - u_a) * (d_a / denom)
+                    } else {
+                        (u_a + u_b) / 2.0
+                    };
+                    seeds.push(seed);
+                }
+            }
 
+            // 3. Check for local minima of distance (tangent or near-miss)
+            for i in 1..samples {
+                let d_prev = d_samples[i - 1];
+                let d_curr = d_samples[i];
+                let d_next = d_samples[i + 1];
+
+                if d_curr <= d_prev && d_curr <= d_next {
+                    seeds.push(u_samples[i]);
+                }
+            }
+
+            // Deduplicate seeds within this span to prevent redundant solves
+            seeds.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            let span_len = u_max - u_min;
+            let cluster_tol = (span_len / (samples as f64)) * 0.5;
+            let mut unique_seeds: Vec<f64> = Vec::new();
+            for seed in seeds {
+                if !unique_seeds.iter().any(|&s| (s - seed).abs() <= cluster_tol) {
+                    unique_seeds.push(seed);
+                }
+            }
+
+            // Refine each unique candidate seed using Newton's method
+            for mut u_guess in unique_seeds {
                 for _ in 0..25 {
                     let (pt, ders) = self.evaluate_derivatives(u_guess, 1, tol)?;
                     let v = pt - line.start_point;
