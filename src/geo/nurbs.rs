@@ -467,12 +467,93 @@ impl NurbsCurve {
 impl Curve for NurbsCurve {
     fn intersect_with_line(
         &self,
-        _line: &Line,
-        _extends: bool,
-        _tol: &Tolerance
+        line: &Line,
+        extends: bool,
+        tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        // TODO: Implement line-NURBS curve intersection
-        Err(BgcError::NotImplemented)
+        let line_dir = line.end_point - line.start_point;
+        let line_len_sq = line_dir.length_squared();
+
+        if line_len_sq <= tol.equal_point() * tol.equal_point() {
+            return Err(BgcError::InvalidInput);
+        }
+
+        // Geometric search for each knot span
+        let spans = self.knot_spans(tol);
+        let mut intersection_points: Vec<Point> = Vec::new();
+        let mut found_params: Vec<f64> = Vec::new();
+
+        for (u_min, u_max) in spans {
+            // Subdivide within the span to search for an initial solution (seed value)
+            let samples = 10;
+            for i in 0..samples {
+                let u0 = u_min + (u_max - u_min) * (i as f64) / (samples as f64);
+                let u1 = u_min + (u_max - u_min) * ((i + 1) as f64) / (samples as f64);
+
+                let p0 = self.evaluate(u0, tol)?;
+                let p1 = self.evaluate(u1, tol)?;
+
+                // Compute minimum distance between line and line segment (p0-p1)
+                let dist_sq0 = line.distance_squared_to(&p0, true, tol);
+                let dist_sq1 = line.distance_squared_to(&p1, true, tol);
+
+                // Skip if both points p0 and p1 are sufficiently far from the line
+                // (no intersection)
+                let max_dist_sq = 100.0 * tol.equal_point() * tol.equal_point();
+                if dist_sq0 > max_dist_sq && dist_sq1 > max_dist_sq {
+                    continue;
+                }
+
+                // Run Newton's method refinement only for intervals close to the line
+                let mut u_guess = (u0 + u1) / 2.0;
+
+                for _ in 0..15 {
+                    let (pt, ders) = self.evaluate_derivatives(u_guess, 1, tol)?;
+                    let v = pt - line.start_point;
+
+                    // Vector rejection obtained by subtracting the parallel projection onto
+                    // the line
+                    let proj = line_dir * (v.inner_product(&line_dir) / line_len_sq);
+                    let dist_vec = v - proj;
+
+                    if dist_vec.length() <= tol.equal_point() {
+                        // Check for duplicate solutions
+                        if !found_params.iter().any(|&p| (p - u_guess).abs() <= tol.calculation()) {
+                            // Line segment range check (when extends == false)
+                            let t = v.inner_product(&line_dir) / line_len_sq;
+                            if extends
+                                || (-tol.calculation() ..= 1.0 + tol.calculation()).contains(&t)
+                            {
+                                found_params.push(u_guess);
+                                intersection_points.push(pt);
+                            }
+                        }
+                        break;
+                    }
+
+                    // Update parameter u step using the first derivative
+                    let der = ders[0];
+                    let der_proj = line_dir * (der.inner_product(&line_dir) / line_len_sq);
+                    let dist_der = der - der_proj;
+
+                    let denom = dist_der.length_squared();
+                    if denom <= tol.calculation() {
+                        break;
+                    }
+
+                    let delta = -dist_vec.inner_product(&line_dir) / denom;
+                    u_guess += delta;
+
+                    if u_guess < u_min - tol.calculation() || u_guess > u_max + tol.calculation() {
+                        break;
+                    }
+
+                    u_guess = u_guess.clamp(u_min, u_max);
+                }
+            }
+        }
+
+        Ok(intersection_points)
     }
 
     fn intersect_with_arc(
