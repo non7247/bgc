@@ -488,21 +488,7 @@ impl Curve for NurbsCurve {
                 let u0 = u_min + (u_max - u_min) * (i as f64) / (samples as f64);
                 let u1 = u_min + (u_max - u_min) * ((i + 1) as f64) / (samples as f64);
 
-                let p0 = self.evaluate(u0, tol)?;
-                let p1 = self.evaluate(u1, tol)?;
-
-                // Compute minimum distance between line and line segment (p0-p1)
-                let dist_sq0 = line.distance_squared_to(&p0, true, tol);
-                let dist_sq1 = line.distance_squared_to(&p1, true, tol);
-
-                // Skip if both points p0 and p1 are sufficiently far from the line
-                // (no intersection)
-                let max_dist_sq = 100.0 * tol.equal_point() * tol.equal_point();
-                if dist_sq0 > max_dist_sq && dist_sq1 > max_dist_sq {
-                    continue;
-                }
-
-                // Run Newton's method refinement only for intervals close to the line
+                // Run Newton's method refinement
                 let mut u_guess = (u0 + u1) / 2.0;
 
                 for _ in 0..15 {
