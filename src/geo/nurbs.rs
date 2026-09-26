@@ -1237,4 +1237,216 @@ mod tests {
                 || (res[0].is_equal_to(&p2, &tol) && res[1].is_equal_to(&p1, &tol))
         );
     }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_straight_bezier_one_point() {
+        let tol = Tolerance::default();
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(10.0, 20.0, 30.0),
+        ];
+        let weights = vec![1.0, 1.0];
+        let knots = vec![0.0, 0.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(1, pts, weights, knots, &tol).unwrap();
+
+        let plane = Plane::new(1.0, 0.0, 0.0, -5.0); // x = 5.0
+        let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(res.len(), 1);
+        assert!(res[0].is_equal_to(&Point::new(5.0, 10.0, 15.0), &tol));
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_bezier_two_points() {
+        let tol = Tolerance::default();
+        // Quadratic Bezier arch: (0,0,0) -> (50,100,0) -> (100,0,0)
+        // Peak is at (50, 50, 0) when u = 0.5. At u = 0.25 and 0.75, y = 37.5.
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(50.0, 100.0, 0.0),
+            Point::new(100.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        let plane = Plane::new(0.0, 1.0, 0.0, -37.5); // y = 37.5
+        let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(res.len(), 2);
+        let p1 = Point::new(25.0, 37.5, 0.0);
+        let p2 = Point::new(75.0, 37.5, 0.0);
+        assert!(
+            (res[0].is_equal_to(&p1, &tol) && res[1].is_equal_to(&p2, &tol))
+                || (res[0].is_equal_to(&p2, &tol) && res[1].is_equal_to(&p1, &tol))
+        );
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_tangent() {
+        let tol = Tolerance::default();
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(50.0, 100.0, 0.0),
+            Point::new(100.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        let plane = Plane::new(0.0, 1.0, 0.0, -50.0); // y = 50.0 (tangent at apex)
+        let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(res.len(), 1);
+        assert!(res[0].is_equal_to(&Point::new(50.0, 50.0, 0.0), &tol));
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_rational_circle() {
+        let tol = Tolerance::default();
+        let r = 100.0;
+        let ox = 100.0;
+        let oy = 200.0;
+        let oz = 50.0;
+        let w = std::f64::consts::FRAC_1_SQRT_2;
+        let pts = vec![
+            Point::new(ox + r, oy, oz),
+            Point::new(ox + r, oy + r, oz),
+            Point::new(ox, oy + r, oz),
+            Point::new(ox - r, oy + r, oz),
+            Point::new(ox - r, oy, oz),
+            Point::new(ox - r, oy - r, oz),
+            Point::new(ox, oy - r, oz),
+            Point::new(ox + r, oy - r, oz),
+            Point::new(ox + r, oy, oz),
+        ];
+        let weights = vec![1.0, w, 1.0, w, 1.0, w, 1.0, w, 1.0];
+        let knots = vec![
+            0.0, 0.0, 0.0,
+            0.25, 0.25,
+            0.5, 0.5,
+            0.75, 0.75,
+            1.0, 1.0, 1.0,
+        ];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Plane x = 100.0 passing through the center of the circle
+        let plane = Plane::new(1.0, 0.0, 0.0, -100.0);
+        let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(res.len(), 2);
+        let p1 = Point::new(100.0, 300.0, 50.0);
+        let p2 = Point::new(100.0, 100.0, 50.0);
+        assert!(
+            (res[0].is_equal_to(&p1, &tol) && res[1].is_equal_to(&p2, &tol))
+                || (res[0].is_equal_to(&p2, &tol) && res[1].is_equal_to(&p1, &tol))
+        );
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_multispan_cubic() {
+        let tol = Tolerance::default();
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(100.0, 200.0, 0.0),
+            Point::new(200.0, -100.0, 0.0),
+            Point::new(300.0, 200.0, 0.0),
+            Point::new(400.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(3, pts, weights, knots, &tol).unwrap();
+
+        // Plane y = 50.0 cuts through multiple spans
+        let plane = Plane::new(0.0, 1.0, 0.0, -50.0);
+        let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert!(res.len() >= 2);
+        for pt in &res {
+            assert!((pt.y - 50.0).abs() <= tol.equal_point());
+            assert!(pt.z.abs() <= tol.equal_point());
+        }
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_endpoint() {
+        let tol = Tolerance::default();
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(50.0, 100.0, 50.0),
+            Point::new(100.0, 100.0, 100.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Plane passing through start point (0, 0, 0): x + y + z = 0
+        let plane_start = Plane::new(1.0, 1.0, 1.0, 0.0);
+        let res_start = curve.intersect_with_plane(&plane_start, false, &tol).unwrap();
+        assert_eq!(res_start.len(), 1);
+        assert!(res_start[0].is_equal_to(&Point::new(0.0, 0.0, 0.0), &tol));
+
+        // Plane passing through end point (100, 100, 100): x + y + z - 300 = 0
+        let plane_end = Plane::new(1.0, 1.0, 1.0, -300.0);
+        let res_end = curve.intersect_with_plane(&plane_end, false, &tol).unwrap();
+        assert_eq!(res_end.len(), 1);
+        assert!(res_end[0].is_equal_to(&Point::new(100.0, 100.0, 100.0), &tol));
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_no_intersection() {
+        let tol = Tolerance::default();
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(50.0, 100.0, 0.0),
+            Point::new(100.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Plane y = 150.0 is strictly above curve (peak y is 50.0)
+        let plane = Plane::new(0.0, 1.0, 0.0, -150.0);
+        let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert!(res.is_empty());
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_coplanar() {
+        let tol = Tolerance::default();
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(50.0, 100.0, 0.0),
+            Point::new(100.0, 0.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Plane z = 0 contains the entire curve
+        let plane = Plane::new(0.0, 0.0, 1.0, 0.0);
+        let res = curve.intersect_with_plane(&plane, false, &tol);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), BgcError::InvalidInput);
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_large_scale_10k() {
+        let tol = Tolerance::default();
+        let pts = vec![
+            Point::new(0.0, 0.0, 5000.0),
+            Point::new(10000.0, 20000.0, 5000.0),
+            Point::new(20000.0, 0.0, 5000.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        // Plane y = 7500.0, cuts curve at x = 5000 and x = 15000
+        let plane = Plane::new(0.0, 1.0, 0.0, -7500.0);
+        let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
+
+        assert_eq!(res.len(), 2);
+        let p1 = Point::new(5000.0, 7500.0, 5000.0);
+        let p2 = Point::new(15000.0, 7500.0, 5000.0);
+        assert!(
+            (res[0].is_equal_to(&p1, &tol) && res[1].is_equal_to(&p2, &tol))
+                || (res[0].is_equal_to(&p2, &tol) && res[1].is_equal_to(&p1, &tol))
+        );
+    }
 }
