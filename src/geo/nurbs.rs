@@ -590,11 +590,11 @@ impl Curve for NurbsCurve {
                 if (u_min..=u_max).contains(&u_guess) {
                     let pt = self.evaluate(u_guess, tol)?;
                     let v = pt - line.start_point;
-                    let proj = line_dir * (v.inner_product(&line_dir) / line_len_sq);
+                    let t = v.inner_product(&line_dir) / line_len_sq;
+                    let proj = line_dir * t;
                     let dist_vec = v - proj;
 
                     if dist_vec.length() <= tol.equal_point() {
-                        let t = v.inner_product(&line_dir) / line_len_sq;
                         if (extends
                             || (-tol.calculation() ..= 1.0 + tol.calculation()).contains(&t))
                             && !intersection_points.iter().any(|p| p.is_equal_to(&pt, tol))
