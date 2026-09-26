@@ -469,6 +469,9 @@ impl Curve for NurbsCurve {
         extends: bool,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
+        const SAMPLES_PER_SPAN: usize = 16;
+        const MAX_NEWTON_ITERATIONS: usize = 25;
+
         let line_dir = line.end_point - line.start_point;
         let line_len_sq = line_dir.length_squared();
 
@@ -482,7 +485,7 @@ impl Curve for NurbsCurve {
 
         for (u_min, u_max) in spans {
             // Subdivide within the span to evaluate sample points
-            let samples = 16;
+            let samples = SAMPLES_PER_SPAN;
             let mut u_samples = Vec::with_capacity(samples + 1);
             let mut r_samples = Vec::with_capacity(samples + 1);
             let mut d_samples = Vec::with_capacity(samples + 1);
@@ -553,7 +556,7 @@ impl Curve for NurbsCurve {
 
             // Refine each unique candidate seed using Newton's method
             for mut u_guess in unique_seeds {
-                for _ in 0..25 {
+                for _ in 0..MAX_NEWTON_ITERATIONS {
                     let (pt, ders) = self.evaluate_derivatives(u_guess, 1, tol)?;
                     let v = pt - line.start_point;
 
