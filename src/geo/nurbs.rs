@@ -624,11 +624,15 @@ impl Curve for NurbsCurve {
 
     fn intersect_with_plane(
         &self,
-        _plane: &Plane,
+        plane: &Plane,
         _extends: bool,
-        _tol: &Tolerance
+        tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
-        // TODO: Implement plane-NURBS curve intersection
+        // Check if all control points are coplanar
+        if self.control_points.iter().all(|p| plane.distance_to(p) < tol.equal_point()) {
+            return Err(BgcError::InvalidInput);
+        }
+
         Err(BgcError::NotImplemented)
     }
 }
