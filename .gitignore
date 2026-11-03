@@ -2,3 +2,5 @@
 Cargo.lock
 *.un~
 *.swp
+/rust_out.exe
+/rust_out.pdb
