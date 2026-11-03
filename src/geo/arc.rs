@@ -73,11 +73,9 @@ impl Arc {
         let x_axis = (start - center).normal(tol);
         let y_axis = n.outer_product(&x_axis).normal(tol);
 
-        let local_end = end.transform(
-            &Matrix3d::transform_to_local(center, &x_axis, &y_axis, tol),
-            tol,
-        )?;
-        let end_angle = Arc::calc_angle_at_local_point(&local_end);
+        let to_local = Matrix3d::transform_to_local(center, &x_axis, &y_axis, tol);
+        let local_end = (end - center).transform(&to_local);
+        let end_angle = local_end.angle_xy(tol);
 
         Ok(Self {
             center_point: *center,
@@ -123,16 +121,14 @@ impl Arc {
         let ref_vec = x_axis.outer_product(&to_on_arc);
         let y_axis = ref_vec.outer_product(&x_axis).normal(tol);
 
-        let local_end = end_point.transform(
-            &Matrix3d::transform_to_local(
-                &center,
-                &x_axis,
-                &y_axis,
-                tol
-            ),
+        let to_local = Matrix3d::transform_to_local(
+            &center,
+            &x_axis,
+            &y_axis,
             tol
-        )?;
-        let end_angle = Arc::calc_angle_at_local_point(&local_end);
+        );
+        let local_end = (end_point - center).transform(&to_local);
+        let end_angle = local_end.angle_xy(tol);
 
         Ok(Self { center_point: center,
                   x_axis,
@@ -174,7 +170,7 @@ impl Arc {
 
         let line = Line::new(Point::origin(), local_point);
         let on_arc = line.point_at_dist(self.radius, true, tol)?;
-        let angle = Arc::calc_angle_at_local_point(&on_arc);
+        let angle = Arc::calc_angle_at_local_point(&on_arc, tol);
 
         if !extends && !self.is_param_in_range(angle, tol) {
             let to_start = self.start_point().distance_to(point);
@@ -216,13 +212,8 @@ impl Arc {
         Plane::from_point_and_normal(&self.center_point, &z_axis, tol)
     }
 
-    fn calc_angle_at_local_point(p: &Point) -> f64 {
-        let angle = p.y.atan2(p.x);
-        if angle < 0.0 {
-            angle + std::f64::consts::PI * 2.0
-        } else {
-            angle
-        }
+    fn calc_angle_at_local_point(p: &Point, tol: &Tolerance) -> f64 {
+        Vector::from(p).angle_xy(tol)
     }
 
     fn calc_point_at_param(&self, param: f64) -> Point {
@@ -267,13 +258,13 @@ impl Arc {
         let p2 = other.point_at_dist(roots.1, true, tol)?;
 
         let mut points = Vec::new();
-        if self.is_param_in_range(Arc::calc_angle_at_local_point(&p1), tol) &&
+        if self.is_param_in_range(Arc::calc_angle_at_local_point(&p1, tol), tol) &&
                 (extends || other.contains(&p1, false, tol)) {
             points.push(p1);
         }
 
         if !p1.is_equal_to(&p2, tol) &&
-                self.is_param_in_range(Arc::calc_angle_at_local_point(&p2), tol) &&
+                self.is_param_in_range(Arc::calc_angle_at_local_point(&p2, tol), tol) &&
                 (extends || other.contains(&p2, false, tol)) {
             points.push(p2);
         }
