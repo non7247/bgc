@@ -96,6 +96,18 @@ impl Vector {
             angle
         }
     }
+
+    /// Transforms this vector by the 3x3 linear submatrix of the transformation matrix.
+    ///
+    /// Unlike points, vectors represent direction and magnitude, so translation
+    /// (the 4th column of the matrix) is not applied.
+    pub fn transform(&self, mat: &Matrix3d) -> Self {
+        Self::new(
+            mat.get(0, 0) * self.x + mat.get(0, 1) * self.y + mat.get(0, 2) * self.z,
+            mat.get(1, 0) * self.x + mat.get(1, 1) * self.y + mat.get(1, 2) * self.z,
+            mat.get(2, 0) * self.x + mat.get(2, 1) * self.y + mat.get(2, 2) * self.z,
+        )
+    }
 }
 
 impl ops::AddAssign for Vector {
@@ -473,5 +485,61 @@ mod tests {
         // (This depends on the implementation of normal())
         let n_tiny = v_tiny.normal(&tol);
         assert!(n_tiny.is_equal_to(&Vector::new(0.0, 0.0, 0.0), &tol));
+    }
+
+    #[test]
+    fn vector_transform() {
+        let tol = Tolerance::default();
+        let v = Vector::new(12.0, 9.5, 4.8);
+
+        // Matrix with rotation, scale, and translation
+        let mut mat = Matrix3d::new();
+        mat.set(0, 0, 0.9238);
+        mat.set(0, 1, 0.2156);
+        mat.set(0, 2, -0.5856);
+        mat.set(0, 3, 7.2); // translation should be ignored
+        mat.set(1, 0, 0.2514);
+        mat.set(1, 1, -0.1132);
+        mat.set(1, 2, 0.3126);
+        mat.set(1, 3, 3.6); // translation should be ignored
+        mat.set(2, 0, 0.1113);
+        mat.set(2, 1, -0.4286);
+        mat.set(2, 2, 0.8156);
+        mat.set(2, 3, 4.0); // translation should be ignored
+        mat.set(3, 0, 0.0);
+        mat.set(3, 1, 0.0);
+        mat.set(3, 2, 0.0);
+        mat.set(3, 3, 1.0);
+
+        let transformed = v.transform(&mat);
+        assert!(transformed.is_equal_to(
+            &Vector::new(10.32292, 3.44188, 1.17878),
+            &tol
+        ));
+
+        // Identity transform preserves the vector
+        let identity = Matrix3d::identity();
+        assert!(v.transform(&identity).is_equal_to(&v, &tol));
+
+        // Consistency between point difference and vector transform under local/world transforms
+        let origin = Point::new(10.0, 20.0, 30.0);
+        let uaxis = Vector::new(1.0, 1.0, 0.0).normal(&tol);
+        let vaxis = Vector::new(-1.0, 1.0, 2.0).normal(&tol);
+
+        let to_local = Matrix3d::transform_to_local(&origin, &uaxis, &vaxis, &tol);
+        let to_world = Matrix3d::transform_to_world(&origin, &uaxis, &vaxis, &tol);
+
+        let p1 = Point::new(14.0, 25.0, 32.0);
+        let p2 = Point::new(20.0, 18.0, 45.0);
+        let disp = p2 - p1;
+
+        let disp_local = disp.transform(&to_local);
+        let p1_local = p1.transform(&to_local, &tol).unwrap();
+        let p2_local = p2.transform(&to_local, &tol).unwrap();
+
+        assert!(disp_local.is_equal_to(&(p2_local - p1_local), &tol));
+
+        let disp_world = disp_local.transform(&to_world);
+        assert!(disp_world.is_equal_to(&disp, &tol));
     }
 }
