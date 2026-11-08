@@ -62,6 +62,16 @@ impl Plane {
             .abs() / s
     }
 
+    /// Calculates the signed distance from a point to this plane.
+    /// Returns positive if the point is in the direction of the normal,
+    /// and negative if it is in the opposite direction.
+    pub fn signed_distance_to(&self, point: &Point) -> f64 {
+        let s = (self.param_a.powi(2) + self.param_b.powi(2) + self.param_c.powi(2)).sqrt();
+
+        (point.x * self.param_a + point.y * self.param_b + point.z * self.param_c + self.param_d)
+            / s
+    }
+
     /// Calculates the closest point on this plane from a point.
     ///
     /// p0(x0, y0, z0) -> Ax + By + Cz + D = 0
