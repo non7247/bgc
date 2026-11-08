@@ -1,3 +1,5 @@
+use std::f32::NAN;
+
 use super::*;
 use crate::{BgcError, Tolerance};
 
@@ -632,6 +634,30 @@ impl Curve for NurbsCurve {
         if self.control_points.iter().all(|p| plane.distance_to(p) < tol.equal_point()) {
             return Err(BgcError::InvalidInput);
         }
+
+        let nvec = plane.get_normal_vector(tol);
+        if nvec.length() < tol.equal_vector() {
+            return Err(BgcError::InvalidInput);
+        }
+
+        // Signed distance function(u)
+        let func = |u: f64| -> f64 {
+            if let Ok(pt) = self.evaluate(u, tol) {
+                plane.signed_distance_to(&pt)
+            } else {
+                f64::NAN
+            }
+        };
+
+        // 1st derivative f'(u) = C'(u) · N
+        let dfunc = |u: f64| -> f64 {
+            if let Ok((_pt, ders)) = self.evaluate_derivatives(u, 1, tol) {
+                let tan = ders[0];
+                tan.x * nvec.x + tan.y * nvec.y + tan.z * nvec.z
+            } else {
+                f64::NAN
+            }
+        };
 
         Err(BgcError::NotImplemented)
     }
