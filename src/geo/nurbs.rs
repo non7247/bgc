@@ -1,7 +1,5 @@
-use std::f32::NAN;
-
 use super::*;
-use crate::{BgcError, Tolerance};
+use crate::{BgcError, Tolerance, math::newton};
 
 /// Non-Uniform Rational B-Spline (NURBS) Curve.
 #[derive(Debug, Clone)]
@@ -630,6 +628,9 @@ impl Curve for NurbsCurve {
         _extends: bool,
         tol: &Tolerance
     ) -> Result<Vec<Point>, BgcError> {
+        const SAMPLES_PER_SPAN: usize = 16;
+        const MAX_NEWTON_ITERATIONS: i32 = 25;
+
         // Check if all control points are coplanar
         if self.control_points.iter().all(|p| plane.distance_to(p) < tol.equal_point()) {
             return Err(BgcError::InvalidInput);
@@ -659,7 +660,61 @@ impl Curve for NurbsCurve {
             }
         };
 
-        Err(BgcError::NotImplemented)
+        // Find initial seed intervals (u_a, u_b) within each knot span using knot_spans()
+        let spans = self.knot_spans(tol);
+        let mut seeds = Vec::new();
+
+        for (u_min, u_max) in spans {
+            let dt = (u_max - u_min) / SAMPLES_PER_SPAN as f64;
+            let mut prev_u = u_min;
+            let mut prev_d = func(prev_u);
+
+            for j in 1..=SAMPLES_PER_SPAN {
+                let curr_u = u_min + j as f64 * dt;
+                let curr_d = func(curr_u);
+
+                // Detect crossings via sign evaluation, recording the seed interval and span range
+                if prev_d.abs() <= tol.equal_point() || curr_d.abs() <= tol.equal_point() {
+                    seeds.push((prev_u, curr_u, u_min, u_max));
+                } else if prev_d * curr_d < 0.0 {
+                    seeds.push((prev_u, curr_u, u_min, u_max));
+                }
+
+                prev_u = curr_u;
+                prev_d = curr_d;
+            }
+        }
+
+        // Run convergence calculation using newton() within each span range
+        let mut intersection_points = Vec::new();
+        let mut founds = Vec::new();
+
+        for (u_a, u_b, span_min, span_max) in seeds {
+            let init_u = (u_a + u_b) * 0.5;
+
+            // Build a local closure that clamps to each span's boundaries
+            let span_func = |u: f64| func(u.clamp(span_min, span_max));
+            let span_dfunc = |u: f64| dfunc(u.clamp(span_min, span_max));
+
+            if let Ok((u_root, _val))
+                    = newton(init_u, MAX_NEWTON_ITERATIONS, span_func, span_dfunc, tol) {
+                let u_final = u_root.clamp(span_min, span_max);
+
+                // Check if the calculation result actually satisfies the intersection condition
+                // (distance ≉ 0)
+                if func(u_final).abs() <= tol.convergence() {
+                    // Exclude adjacent duplicate solutions
+                    if !founds.iter().any(
+                        |&prev_u: &f64| (prev_u - u_final).abs() <= tol.convergence * 10.0
+                    ) {
+                        founds.push(u_final);
+                        intersection_points.push(self.evaluate(u_final, tol)?);
+                    }
+                }
+            }
+        }
+
+        Ok(intersection_points)
     }
 }
 
