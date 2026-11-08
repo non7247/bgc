@@ -654,61 +654,81 @@ impl Curve for NurbsCurve {
         let dfunc = |u: f64| -> f64 {
             if let Ok((_pt, ders)) = self.evaluate_derivatives(u, 1, tol) {
                 let tan = ders[0];
-                tan.x * nvec.x + tan.y * nvec.y + tan.z * nvec.z
+                tan.inner_product(&nvec)
             } else {
                 f64::NAN
             }
         };
 
-        // Find initial seed intervals (u_a, u_b) within each knot span using knot_spans()
+        // Geometric search for each knot span
         let spans = self.knot_spans(tol);
-        let mut seeds = Vec::new();
+        let mut intersection_points = Vec::new();
 
         for (u_min, u_max) in spans {
             let dt = (u_max - u_min) / SAMPLES_PER_SPAN as f64;
             let mut prev_u = u_min;
             let mut prev_d = func(prev_u);
+            let mut seeds: Vec<f64> = Vec::new();
 
             for j in 1..=SAMPLES_PER_SPAN {
                 let curr_u = u_min + j as f64 * dt;
                 let curr_d = func(curr_u);
 
-                // Detect crossings via sign evaluation, recording the seed interval and span range
-                if prev_d.abs() <= tol.equal_point() || curr_d.abs() <= tol.equal_point() {
-                    seeds.push((prev_u, curr_u, u_min, u_max));
-                } else if prev_d * curr_d < 0.0 {
-                    seeds.push((prev_u, curr_u, u_min, u_max));
+                if prev_d.abs() <= tol.equal_point() {
+                    seeds.push(prev_u);
+                }
+                if curr_d.abs() <= tol.equal_point() {
+                    seeds.push(curr_u);
+                }
+                if prev_d * curr_d < 0.0 {
+                    let abs_p = prev_d.abs();
+                    let abs_c = curr_d.abs();
+                    let denom = abs_p + abs_c;
+                    let seed = if denom > tol.calculation() {
+                        prev_u + (curr_u - prev_u) * (abs_p / denom)
+                    } else {
+                        (prev_u + curr_u) * 0.5
+                    };
+                    seeds.push(seed);
                 }
 
                 prev_u = curr_u;
                 prev_d = curr_d;
             }
-        }
 
-        // Run convergence calculation using newton() within each span range
-        let mut intersection_points = Vec::new();
-        let mut founds = Vec::new();
+            // Deduplicate seeds within this span to prevent redundant solves
+            seeds.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            let span_len = u_max - u_min;
+            let cluster_tol = (span_len / (SAMPLES_PER_SPAN as f64)) * 0.5;
+            let mut unique_seeds: Vec<f64> = Vec::new();
+            for seed in seeds {
+                if !unique_seeds.iter().any(|&s| (s - seed).abs() <= cluster_tol) {
+                    unique_seeds.push(seed);
+                }
+            }
 
-        for (u_a, u_b, span_min, span_max) in seeds {
-            let init_u = (u_a + u_b) * 0.5;
+            // Run convergence calculation using newton() within each span range
+            for init_u in unique_seeds {
+                let span_func = |u: f64| func(u.clamp(u_min, u_max));
+                let span_dfunc = |u: f64| dfunc(u.clamp(u_min, u_max));
 
-            // Build a local closure that clamps to each span's boundaries
-            let span_func = |u: f64| func(u.clamp(span_min, span_max));
-            let span_dfunc = |u: f64| dfunc(u.clamp(span_min, span_max));
+                let u_opt = match newton(init_u, MAX_NEWTON_ITERATIONS, span_func, span_dfunc, tol) {
+                    Ok((u_root, _val)) => Some(u_root.clamp(u_min, u_max)),
+                    Err(BgcError::MustBeNonZero) if func(init_u).abs() <= tol.convergence() => {
+                        Some(init_u.clamp(u_min, u_max))
+                    }
+                    _ => None,
+                };
 
-            if let Ok((u_root, _val))
-                    = newton(init_u, MAX_NEWTON_ITERATIONS, span_func, span_dfunc, tol) {
-                let u_final = u_root.clamp(span_min, span_max);
-
-                // Check if the calculation result actually satisfies the intersection condition
-                // (distance ≉ 0)
-                if func(u_final).abs() <= tol.convergence() {
-                    // Exclude adjacent duplicate solutions
-                    if !founds.iter().any(
-                        |&prev_u: &f64| (prev_u - u_final).abs() <= tol.convergence * 10.0
-                    ) {
-                        founds.push(u_final);
-                        intersection_points.push(self.evaluate(u_final, tol)?);
+                if let Some(u_final) = u_opt {
+                    // Check if the calculation result actually satisfies the intersection condition
+                    // (distance ≉ 0)
+                    if func(u_final).abs() <= tol.convergence() {
+                        // Exclude duplicate solutions in 3D coordinate space
+                        let pt_u = self.evaluate(u_final, tol)?;
+                        if !intersection_points.iter().any(|p: &Point| p.is_equal_to(&pt_u, tol)) {
+                            intersection_points.push(pt_u);
+                        }
                     }
                 }
             }
