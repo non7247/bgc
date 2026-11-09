@@ -1554,4 +1554,108 @@ mod tests {
                 || (res[0].is_equal_to(&p2, &tol) && res[1].is_equal_to(&p1, &tol))
         );
     }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_tangent_arbitrary_param() {
+        let tol = Tolerance::default();
+        // Quadratic Bezier where apex touches y = 0 at u = 1/3 (not aligned with 1/16 sampling grid)
+        // y(u) = 90 * (u - 1/3)^2 >= 0
+        // P0 = (0, 10, 0), P1 = (45, -20, 0), P2 = (90, 40, 0)
+        // At u = 1/3: point is (30.0, 0.0, 0.0)
+        let pts = vec![
+            Point::new(0.0, 10.0, 0.0),
+            Point::new(45.0, -20.0, 0.0),
+            Point::new(90.0, 40.0, 0.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        let plane = Plane::new(0.0, 1.0, 0.0, 0.0); // y = 0
+        let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(res.len(), 1);
+        assert!(res[0].is_equal_to(&Point::new(30.0, 0.0, 0.0), &tol));
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_near_knot_boundary() {
+        let tol = Tolerance::default();
+        // Multi-span cubic curve with knots [0, 0, 0, 0, 0.5, 1, 1, 1, 1]
+        // Curve passes through plane z = 0 right near u = 0.5
+        let pts = vec![
+            Point::new(0.0, 0.0, -10.0),
+            Point::new(20.0, 0.0, -5.0),
+            Point::new(40.0, 0.0, 0.0),
+            Point::new(60.0, 0.0, 5.0),
+            Point::new(80.0, 0.0, 10.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(3, pts, weights, knots, &tol).unwrap();
+
+        let plane = Plane::new(0.0, 0.0, 1.0, 0.0); // z = 0
+        let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(res.len(), 1);
+        assert!(res[0].is_equal_to(&Point::new(40.0, 0.0, 0.0), &tol));
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_convex_hull_cases() {
+        let tol = Tolerance::default();
+        // Case 1: All control points strictly on positive side
+        let pts_pos = vec![
+            Point::new(0.0, 10.0, 0.0),
+            Point::new(50.0, 30.0, 0.0),
+            Point::new(100.0, 15.0, 0.0),
+        ];
+        let curve_pos = NurbsCurve::new(2, pts_pos, vec![1.0, 1.0, 1.0], vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0], &tol).unwrap();
+        let plane = Plane::new(0.0, 1.0, 0.0, 0.0); // y = 0
+        let res_pos = curve_pos.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert!(res_pos.is_empty());
+
+        // Case 2: All control points strictly on negative side
+        let pts_neg = vec![
+            Point::new(0.0, -10.0, 0.0),
+            Point::new(50.0, -30.0, 0.0),
+            Point::new(100.0, -15.0, 0.0),
+        ];
+        let curve_neg = NurbsCurve::new(2, pts_neg, vec![1.0, 1.0, 1.0], vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0], &tol).unwrap();
+        let res_neg = curve_neg.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert!(res_neg.is_empty());
+
+        // Case 3: Control polygon straddles plane (P1.y = -5 < 0), but curve itself stays > 0 (y_min = 2.5 at u=0.5)
+        let pts_straddle = vec![
+            Point::new(0.0, 10.0, 0.0),
+            Point::new(50.0, -5.0, 0.0),
+            Point::new(100.0, 10.0, 0.0),
+        ];
+        let curve_straddle = NurbsCurve::new(2, pts_straddle, vec![1.0, 1.0, 1.0], vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0], &tol).unwrap();
+        let res_straddle = curve_straddle.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert!(res_straddle.is_empty());
+    }
+
+    #[test]
+    fn test_nurbs_intersect_with_plane_oblique_unnormalized() {
+        let tol = Tolerance::default();
+        // Plane: 2x + 2y - z - 10 = 0 (||N|| = sqrt(4 + 4 + 1) = 3)
+        let plane = Plane::new(2.0, 2.0, -1.0, -10.0);
+
+        // Straight line Bezier curve from (0, 0, 0) to (6, 6, 6)
+        // P(u) = (6u, 6u, 6u)
+        // 2(6u) + 2(6u) - 6u - 10 = 0 => 18u = 10 => u = 5/9
+        // P(5/9) = (10/3, 10/3, 10/3)
+        let pts = vec![
+            Point::new(0.0, 0.0, 0.0),
+            Point::new(3.0, 3.0, 3.0),
+            Point::new(6.0, 6.0, 6.0),
+        ];
+        let weights = vec![1.0, 1.0, 1.0];
+        let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+
+        let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(res.len(), 1);
+        let expected = Point::new(10.0 / 3.0, 10.0 / 3.0, 10.0 / 3.0);
+        assert!(res[0].is_equal_to(&expected, &tol));
+    }
 }
