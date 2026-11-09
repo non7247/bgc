@@ -691,6 +691,13 @@ impl Curve for NurbsCurve {
                     };
                     seeds.push(seed);
                 }
+                if j < SAMPLES_PER_SPAN {
+                    let next_u = u_min + (j + 1) as f64 * dt;
+                    let next_d = func(next_u);
+                    if curr_d.abs() <= prev_d.abs() && curr_d.abs() <= next_d.abs() {
+                        seeds.push(curr_u);
+                    }
+                }
 
                 prev_u = curr_u;
                 prev_d = curr_d;
@@ -1558,6 +1565,7 @@ mod tests {
     #[test]
     fn test_nurbs_intersect_with_plane_tangent_arbitrary_param() {
         let tol = Tolerance::default();
+        // Positive side touch:
         // Quadratic Bezier where apex touches y = 0 at u = 1/3 (not aligned with 1/16 sampling grid)
         // y(u) = 90 * (u - 1/3)^2 >= 0
         // P0 = (0, 10, 0), P1 = (45, -20, 0), P2 = (90, 40, 0)
@@ -1569,12 +1577,24 @@ mod tests {
         ];
         let weights = vec![1.0, 1.0, 1.0];
         let knots = vec![0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
-        let curve = NurbsCurve::new(2, pts, weights, knots, &tol).unwrap();
+        let curve = NurbsCurve::new(2, pts, weights.clone(), knots.clone(), &tol).unwrap();
 
         let plane = Plane::new(0.0, 1.0, 0.0, 0.0); // y = 0
         let res = curve.intersect_with_plane(&plane, false, &tol).unwrap();
         assert_eq!(res.len(), 1);
         assert!(res[0].is_equal_to(&Point::new(30.0, 0.0, 0.0), &tol));
+
+        // Negative side touch:
+        // Quadratic Bezier touching y = 0 from negative side (y(u) <= 0) at u = 1/3
+        let pts_neg = vec![
+            Point::new(0.0, -10.0, 0.0),
+            Point::new(45.0, 20.0, 0.0),
+            Point::new(90.0, -40.0, 0.0),
+        ];
+        let curve_neg = NurbsCurve::new(2, pts_neg, weights, knots, &tol).unwrap();
+        let res_neg = curve_neg.intersect_with_plane(&plane, false, &tol).unwrap();
+        assert_eq!(res_neg.len(), 1);
+        assert!(res_neg[0].is_equal_to(&Point::new(30.0, 0.0, 0.0), &tol));
     }
 
     #[test]
